@@ -1,15 +1,22 @@
 ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
 
 _%: %.o $(ULIB)
-	$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	@$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
+	@echo $(LD) -LDFLAGS -T $U/user.ld -o $@ ULIB
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
+
+# Use rules by gcc -MD
+# $U/%.o: $U/%.c
+# 	@$(CC) $(CFLAGS) -c -o $@ $<
+# 	@echo $(CC) -CFLAGS -c -o $@ $<
 
 $U/usys.S : $U/usys.pl
 	perl $U/usys.pl > $U/usys.S
 
 $U/usys.o : $U/usys.S
-	$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+	@$(CC) $(CFLAGS) -c -o $U/usys.o $U/usys.S
+	@echo $(CC) -CFLAGS -c -o $U/usys.o $U/usys.S
 
 $U/_forktest: $U/forktest.o $(ULIB)
 	# forktest has less library code linked in - needs to be small

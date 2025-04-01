@@ -5,7 +5,8 @@
 K=kernel
 U=user
 -include conf/lab.mk
--include kernel/*.d user/*.d
+#-include kernel/*.d
+-include user/*.d
 include kernel/kernel.mak
 include user/user.mak
 
@@ -89,7 +90,8 @@ LDFLAGS = -z max-page-size=4096
 ##
 
 fs.img: mkfs/mkfs README $(UEXTRA) $(UPROGS)
-	mkfs/mkfs fs.img README $(UEXTRA) $(UPROGS)
+	@mkfs/mkfs fs.img README $(UEXTRA) $(UPROGS)
+	@echo mkfs/mkfs fs.img README $(UEXTRA) -UPROGS
 
 mkfs/mkfs: mkfs/mkfs.c $K/fs.h $K/param.h
 	gcc $(XCFLAGS) -Werror -Wall -I. -o mkfs/mkfs mkfs/mkfs.c
@@ -115,7 +117,8 @@ qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
 
 ifndef CPUS
-CPUS := 1   # set CPU to 1, easier for debugging
+# set CPU to 1, easier for debugging
+CPUS := 1
 endif
 ifeq ($(LAB),fs)
 CPUS := 1
