@@ -2,7 +2,7 @@
 // 其他方法参考https://ttzytt.com/2022/07/xv6_lab1_record/
 #include "kernel/types.h"
 #include "kernel/stat.h"
-#include "user/user.h"
+#include "user/uutils.h"
 #include "kernel/fs.h"
 #include "kernel/fcntl.h"
 

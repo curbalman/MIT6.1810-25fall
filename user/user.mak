@@ -1,8 +1,10 @@
 ULIB = $U/ulib.o $U/usys.o $U/printf.o $U/umalloc.o
+FULLULIB = $(ULIB)
+FULLULIB += $U/uutils.o
 
-_%: %.o $(ULIB)
+_%: %.o $(FULLULIB)
 	@$(LD) $(LDFLAGS) -T $U/user.ld -o $@ $^
-	@echo $(LD) -LDFLAGS -T $U/user.ld -o $@ ULIB
+	@echo $(LD) -LDFLAGS -T $U/user.ld -o $@ FULLULIB
 	$(OBJDUMP) -S $@ > $*.asm
 	$(OBJDUMP) -t $@ | sed '1,/SYMBOL TABLE/d; s/ .* / /; /^$$/d' > $*.sym
 
