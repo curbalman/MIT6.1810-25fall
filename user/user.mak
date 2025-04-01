@@ -115,7 +115,4 @@ UPROGS += \
 	$U/_nettest
 endif
 
-UEXTRA=
-ifeq ($(LAB),util)
-	UEXTRA += user/xargstest.sh
-endif
+

@@ -1,13 +1,10 @@
-
 # To compile and run with a lab solution, set the lab name in conf/lab.mk
 # (e.g., LAB=util).  Run make grade to test solution with the lab's
 # grade script (e.g., grade-lab-util).
 
--include conf/lab.mk
-
 K=kernel
 U=user
-
+-include conf/lab.mk
 -include kernel/*.d user/*.d
 include kernel/kernel.mak
 include user/user.mak
@@ -81,16 +78,15 @@ endif
 LDFLAGS = -z max-page-size=4096
 
 
-
-
-
-
-
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
 # details:
 # http://www.gnu.org/software/make/manual/html_node/Chained-Rules.html
 .PRECIOUS: %.o
+
+##
+##  file systems, clean
+##
 
 fs.img: mkfs/mkfs README $(UEXTRA) $(UPROGS)
 	mkfs/mkfs fs.img README $(UEXTRA) $(UPROGS)
@@ -106,8 +102,10 @@ clean:
 	mkfs/mkfs fs.img .gdbinit __pycache__ xv6.out* \
 	ph barrier
 
-
-
+UEXTRA=
+ifeq ($(LAB),util)
+	UEXTRA += user/xargstest.sh
+endif
 
 ##
 ##  FOR QEMU
