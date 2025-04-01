@@ -48,6 +48,7 @@ sys_sbrk(void)
   return addr;
 }
 
+// return 0 if success, -1 if fail(due to calling process early terminated)
 uint64
 sys_sleep(void)
 {
