@@ -308,12 +308,14 @@ gettoken(char **ps, char *es, char **q, char **eq)
   return ret;
 }
 
+// 使*ps指向第一个非空白字符，返回其是否在toks中
 int
 peek(char **ps, char *es, char *toks)
 {
   char *s;
 
   s = *ps;
+  // 跳过开头的whitespace
   while(s < es && strchr(whitespace, *s))
     s++;
   *ps = s;
