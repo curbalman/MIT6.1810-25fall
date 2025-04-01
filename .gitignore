@@ -25,4 +25,6 @@ barrier
 .DS_Store
 *.dSYM
 *.pcap
-.vscode/
+
+.vscode/task.json
+.vscode/settings.json
