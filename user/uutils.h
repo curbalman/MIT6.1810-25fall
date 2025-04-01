@@ -1,3 +1,4 @@
+#pragma once
 #include "user/user.h"
 
 // uutils.c
