@@ -1,5 +1,5 @@
 #include "kernel/param.h"
-#include "user/user.h"
+#include "user/uutils.h"
 
 #define MAXLINE 1024
 
