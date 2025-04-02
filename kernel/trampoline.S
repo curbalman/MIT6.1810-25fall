@@ -9,6 +9,9 @@
         # kernel.ld causes this code to start at 
         # a page boundary.
         #
+        # WARNINGS: 不能用c语言的inline asm来保存用户寄存器，
+        # 因为在编译时编译器会自动这些寄存器
+        # sepc等非用户寄存器可由c程序保存
 
 #include "riscv.h"
 #include "memlayout.h"
