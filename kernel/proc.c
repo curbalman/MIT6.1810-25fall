@@ -172,7 +172,7 @@ freeproc(struct proc *p)
 }
 
 // Create a user page table for a given process, with no user memory,
-// but with trampoline and trapframe pages.
+// but with trampoline and trapframe pages mapped.
 pagetable_t
 proc_pagetable(struct proc *p)
 {
@@ -210,6 +210,7 @@ proc_pagetable(struct proc *p)
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
+  // 先unmap trampoline和trapframe, 不然uvmfree()会释放这两的物理内存
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmfree(pagetable, sz);
@@ -319,6 +320,8 @@ fork(void)
   release(&wait_lock);
 
   acquire(&np->lock);
+  // enable trace on children
+  np->tracemask = p->tracemask;
   np->state = RUNNABLE;
   release(&np->lock);
 
