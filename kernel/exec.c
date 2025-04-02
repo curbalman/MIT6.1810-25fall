@@ -46,8 +46,12 @@ exec(char *path, char **argv)
   if(elf.magic != ELF_MAGIC)
     goto bad;
 
+  // no need to kalloc trapframe/usyscall, should be already done
+  // because exec() must be called in a created process unlike fork()
   if((pagetable = proc_pagetable(p)) == 0)
     goto bad;
+
+  // update usyscall here
 
   // Load program into memory.
   for(i=0, off=elf.phoff; i<elf.phnum; i++, off+=sizeof(ph)){
@@ -84,6 +88,7 @@ exec(char *path, char **argv)
     goto bad;
   sz = sz1;
   uvmclear(pagetable, sz-(USERSTACK+1)*PGSIZE);
+  // ZERO DEREFERENCE PROTECT
   sp = sz;
   stackbase = sp - USERSTACK*PGSIZE;
 
@@ -126,13 +131,15 @@ exec(char *path, char **argv)
   p->sz = sz;
   p->trapframe->epc = elf.entry;  // initial program counter = main
   p->trapframe->sp = sp; // initial stack pointer
-  proc_freepagetable(oldpagetable, oldsz);
+  proc_freepagetable(oldpagetable, oldsz);  // free old pagetable, only user part
 
   return argc; // this ends up in a0, the first argument to main(argc, argv)
 
  bad:
   if(pagetable)
-    proc_freepagetable(pagetable, sz);
+    // no need to kfree trapframe/usyscall,
+    // leave that to caller(exec will return if fail)
+    proc_freepagetable(pagetable, sz);  // free new pagetable, only user part
   if(ip){
     iunlockput(ip);
     end_op();
