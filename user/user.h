@@ -1,6 +1,10 @@
 #include "kernel/types.h"
-// kerbal/stat.h
-struct stat;
+#ifdef LAB_MMAP
+typedef unsigned long size_t;
+typedef long int off_t;
+#endif
+
+struct stat;  // kerbal/stat.h
 
 // system calls
 int fork(void);
@@ -25,6 +29,17 @@ char* sbrk(int);
 int sleep(int);
 int uptime(void);
 int trace(int);
+#ifdef LAB_NET
+int bind(uint32);
+int unbind(uint32);
+int send(uint32, uint32, uint32, char *, uint32);
+int recv(uint32, uint32*, uint32*, char *, uint32);
+#endif
+#ifdef LAB_PGTBL
+int ugetpid(void);
+uint64 pgpte(void*);
+void kpgtbl(void);
+#endif
 
 // ulib.c
 int stat(const char*, struct stat*);
@@ -43,6 +58,9 @@ void* memset(void *dst, int c, uint n);
 int atoi(const char*);
 int memcmp(const void *, const void *, uint);
 void *memcpy(void *, const void *, uint);
+#ifdef LAB_LOCK
+int statistics(void*, int);
+#endif
 
 // umalloc.c
 void* malloc(uint);
