@@ -305,6 +305,7 @@ void
 freewalk(pagetable_t pagetable)
 {
   // there are 2^9 = 512 PTEs in a page table.
+  // HARDCODED 512
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
     if((pte & PTE_V) && (pte & (PTE_R|PTE_W|PTE_X)) == 0){
@@ -486,10 +487,37 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 
 
 #ifdef LAB_PGTBL
+static void
+print_pgtbl(pagetable_t pagetable, int level)
+{
+  if (level>2 || level<0) {
+    printf("print_pgtbl: invalid level %d\n", level);
+    return;
+  }
+  const char *const indents[] = {".. .. ..", ".. ..", ".."};
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    if (!(pte & PTE_V))
+      continue;
+    printf("%s%d: pte %p pa %p fl 0x%lx\n", indents[level], i,
+            (void*)pte, (void*)PTE2PA(pte), PTE_FLAGS(pte));
+    if(PTE_LEAF(pte) || level == 0){
+      // leaf
+    } else {
+      // this PTE points to a lower-level page table.
+      uint64 child = PTE2PA(pte);
+      print_pgtbl((pagetable_t)child, level-1);
+    }
+  }
+}
+
+
+// print any pagetable
 void
 vmprint(pagetable_t pagetable) {
-  // your code here
-  printf("print pagetble\n");
+  printf("*****page table %p*********\n", pagetable);
+  print_pgtbl(pagetable, 2);
+  
 }
 #endif
 
