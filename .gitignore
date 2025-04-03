@@ -28,6 +28,4 @@ barrier
 
 .vscode/task.json
 .vscode/settings.json
-
-.vscode/c_cpp_properties.json
 compile_commands.json
