@@ -163,10 +163,7 @@ freeproc(struct proc *p)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
   if(p->usyscall)
-  {
     kfree((void*)p->usyscall);
-    printf("free %s usyscall\n", p->name);
-  }
   p->usyscall = 0;
   if(p->pagetable)
     proc_freepagetable(p->pagetable, p->sz);
