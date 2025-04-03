@@ -524,6 +524,7 @@ vmprint(pagetable_t pagetable) {
 
 
 #ifdef LAB_PGTBL
+// return addr of the pte
 pte_t*
 pgpte(pagetable_t pagetable, uint64 va) {
   return walk(pagetable, va, 0);

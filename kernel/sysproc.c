@@ -91,6 +91,7 @@ sys_pgpte(void)
 #endif
 
 #ifdef LAB_PGTBL
+// print process patbl
 int
 sys_kpgtbl(void)
 {
