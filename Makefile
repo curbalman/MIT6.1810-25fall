@@ -5,7 +5,7 @@
 K=kernel
 U=user
 -include conf/lab.mk
-#-include kernel/*.d
+-include kernel/*.d
 -include user/*.d
 include kernel/kernel.mak
 include user/user.mak

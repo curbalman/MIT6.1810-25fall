@@ -1,3 +1,4 @@
+#pragma once
 #include "kernel/types.h"
 #ifdef LAB_MMAP
 typedef unsigned long size_t;

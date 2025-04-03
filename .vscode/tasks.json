@@ -18,11 +18,21 @@
                     ],
                     "background": {
                         "beginsPattern": ".*Now run 'gdb' in another window.",
-                        // 要对应编译成功后,一句echo的内容. 此处对应 Makefile Line:170
                         "endsPattern": "."
                     }
                 }
             ]
+        },
+        {
+            "label": "run xv6",
+            "type": "shell",
+            "isBackground": false,
+            "command": "make clean; make -j$(nproc) qemu",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "problemMatcher": []
         }
     ]
 }
