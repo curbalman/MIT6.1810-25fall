@@ -40,7 +40,7 @@ CFLAGS = -Wall -Werror -O -fno-omit-frame-pointer -ggdb -gdwarf-2
 
 ifdef LAB
 LABUPPER = $(shell echo $(LAB) | tr a-z A-Z)
-XCFLAGS += -DSOL_$(LABUPPER) -DLAB_$(LABUPPER)
+XCFLAGS += -DSOL_$(LABUPPER) -DLAB_$(LABUPPER) -DLAB_PGTBL
 endif
 
 CFLAGS += $(XCFLAGS)
