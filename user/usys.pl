@@ -37,6 +37,8 @@ entry("sbrk");
 entry("sleep");
 entry("uptime");
 entry("trace");
+entry("sigalarm");
+entry("sigreturn");
 entry("bind");
 entry("unbind");
 entry("send");

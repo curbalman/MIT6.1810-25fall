@@ -715,3 +715,16 @@ procdump(void)
   }
 }
 
+// alarm any process
+
+void
+alarm(void) {
+  for(struct proc *p = proc; p < &proc[NPROC]; p++) {
+    if (p->ticks <= 0) continue;
+    int *passed = &(p->tickspassed);
+    if ((*passed)++ >= p->ticks) {
+      *passed = 0;
+      p->trapframe->epc = p->handler;
+    }
+  }
+}

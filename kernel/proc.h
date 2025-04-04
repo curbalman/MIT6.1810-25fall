@@ -107,6 +107,9 @@ struct proc {
   char name[16];               // Process name (debugging)
 
   // TODO does the following need a lock
-  int tracemask;
-  struct usyscall *usyscall;
+  int tracemask;               // For trace() syscall
+  struct usyscall *usyscall;   // Shared data with user, to speed up syscall(ugetpid())
+  int ticks;
+  int tickspassed;
+  uint64 handler;              // void (*handler)()
 };

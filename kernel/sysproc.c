@@ -138,3 +138,26 @@ sys_trace(void)
   printf("trace mask set\n");
   return 0;
 }
+
+
+uint64
+sys_sigalarm(void)
+{
+  // int sigalarm(int ticks, void (*handler)())
+  int ticks;
+  uint64 handler;
+  struct proc* p = myproc();
+
+  argint(0, &ticks);
+  argaddr(1, &handler);
+  
+  p->ticks = ticks;
+  p->handler = handler;
+  return 0;
+}
+
+uint64
+sys_sigreturn()
+{
+  return 0;
+}

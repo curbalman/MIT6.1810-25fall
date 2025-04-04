@@ -53,6 +53,7 @@ UPROGS=\
 	$U/_find\
 	$U/_xargs\
 	$U/_trace\
+	$U/_alarmtest\
 	
 
 
