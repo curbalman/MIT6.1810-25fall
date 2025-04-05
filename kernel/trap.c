@@ -116,6 +116,7 @@ usertrap(void)
       if ((*passed)++ >= p->ticks) {
         // alarm!
         *passed = 0;
+        if (p->handler == MAXVA)  panic("usertrap: invalid handler address");
         p->trapframe->epc = p->handler;
       }
     }

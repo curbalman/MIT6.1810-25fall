@@ -149,7 +149,9 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
-
+  p->tracemask = 0; p->ticks = 0; p->tickspassed = 0;
+  p->handler = MAXVA;   // set to a invalid address(0 may be a valid address)
+  memset(&p->sigframe, 0, sizeof(p->sigframe));
   return p;
 }
 

@@ -112,4 +112,5 @@ struct proc {
   int ticks;
   int tickspassed;
   uint64 handler;              // void (*handler)()
+  struct trapframe sigframe;
 };
