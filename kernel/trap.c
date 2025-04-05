@@ -1,3 +1,35 @@
+/* Syscall control flow
+  |----usyscall()----|
+  |                  |
+  |ecall             |
+  ↓                  |
+uservec()       userret()
+  |               ↑
+  ↓               |
+usertrap() --> usertrapret()
+  | ↑
+  ↓ |
+syscall()
+  | ↑
+  ↓ |
+syscalls[a7]()
+*/
+
+
+
+
+/* Where does everything goes?
+let p = myproc()
+
+                   arg0                  pc             return value
+usyscall            a0      
+uservec       p->trapframe->a0
+usertrap                          p->trapframe->epc
+syscall                                               p->trapframe->a0
+usertrapret                       p->trapframe->epc
+userret
+usyscall
+*/
 
 #include "types.h"
 #include "param.h"
