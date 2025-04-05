@@ -167,5 +167,5 @@ sys_sigreturn()
   p->alarm_enabled = 1;     // turn on alarm
   // 回到interrupt发生时的状态 
   *(p->trapframe) = p->sigframe;
-  return 0;
+  return p->sigframe.a0;      // restore previous a0, userret set register a0 to this value
 }
