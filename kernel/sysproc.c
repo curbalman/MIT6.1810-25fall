@@ -150,14 +150,21 @@ sys_sigalarm(void)
 
   argint(0, &ticks);
   argaddr(1, &handler);
-  
-  p->ticks = ticks;
-  p->handler = handler;
+  if (ticks) {
+    p->alarm_enabled = 1;
+    p->ticks = ticks;
+    p->handler = handler;
+  }
+  else
+    p->alarm_enabled = 0;
   return 0;
 }
 
 uint64
 sys_sigreturn()
 {
+  struct proc* p = myproc();
+  // 回到interrupt发生时的状态 
+  *(p->trapframe) = p->sigframe;
   return 0;
 }

@@ -109,6 +109,7 @@ struct proc {
   // TODO does the following need a lock
   int tracemask;               // For trace() syscall
   struct usyscall *usyscall;   // Shared data with user, to speed up syscall(ugetpid())
+  int alarm_enabled;            // is alarm enabled
   int ticks;
   int tickspassed;
   uint64 handler;              // void (*handler)()

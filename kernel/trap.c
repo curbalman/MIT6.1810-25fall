@@ -111,13 +111,16 @@ usertrap(void)
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2) {
-    if (p->ticks > 0) {
+    if (p->alarm_enabled && p->ticks > 0 ) {
       int *passed = &(p->tickspassed);
+      // passed++; 如果时间到了，就调用handler
       if ((*passed)++ >= p->ticks) {
         // alarm!
         *passed = 0;
         if (p->handler == MAXVA)  panic("usertrap: invalid handler address");
-        p->trapframe->epc = p->handler;
+        // 保存interrupt发生时的状态    
+        p->sigframe = *(p->trapframe);
+        p->trapframe->epc = p->handler;   // jump to handler function in user space
       }
     }
     yield();
