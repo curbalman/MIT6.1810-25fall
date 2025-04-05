@@ -118,8 +118,9 @@ usertrap(void)
         // alarm!
         *passed = 0;
         if (p->handler == MAXVA)  panic("usertrap: invalid handler address");
-        // 保存interrupt发生时的状态    
-        p->sigframe = *(p->trapframe);
+        p->alarm_enabled = 0;             // disable alarm, prevent reentrant alarm calls
+                                          // 例如，在handler执行的时候，时间又到了，handler会被再次调用 
+        p->sigframe = *(p->trapframe);    // 保存interrupt发生时的状态  
         p->trapframe->epc = p->handler;   // jump to handler function in user space
       }
     }

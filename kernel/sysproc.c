@@ -164,6 +164,7 @@ uint64
 sys_sigreturn()
 {
   struct proc* p = myproc();
+  p->alarm_enabled = 1;     // turn on alarm
   // 回到interrupt发生时的状态 
   *(p->trapframe) = p->sigframe;
   return 0;
