@@ -304,14 +304,16 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
+  printf("fork: forking %s\n", p->name);
 
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
   }
-
+  printf("2222\n");
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+    printf("fork: uvmcopy failed");
     freeproc(np);
     release(&np->lock);
     return -1;

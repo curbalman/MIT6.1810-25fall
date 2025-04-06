@@ -221,6 +221,7 @@ forkforktest()
 int
 main(int argc, char *argv[])
 {
+  printf("cowtest start\n");
   simpletest();
 
   // check that the first simpletest() freed the physical memory.
