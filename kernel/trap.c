@@ -83,7 +83,7 @@ usertrap(void)
   // save user program counter.
   p->trapframe->epc = r_sepc();
   
-  if(r_scause() == 8){
+  if(r_scause() == 8) {
     // system call
 
     if(killed(p))
@@ -98,9 +98,32 @@ usertrap(void)
     intr_on();
 
     syscall();
+  } else if (r_scause() == 15) {
+    //  Store/AMO page fault, is it COW?
+    uint64 va, pa;
+    pte_t *pte;
+    char *mem;
+
+    va = r_stval();
+    pte = walk(p->pagetable, va, 0);
+    if (pte == 0)  goto unexpected;
+    // if not a cow page or not writable, kill the process
+    if (!(*pte & PTE_COW))  goto unexpected;
+    if (!(*pte & PTE_W))    goto unexpected;
+    printf("usertrap: cow page!!!!!");
+    // kalloc new pape, copy, map new page with PTE_W set
+    if((mem = kalloc()) == 0) {
+      printf("usertrap(): kalloc for cow page failed, killing process\n");
+      setkilled(p);
+    }
+    pa = PTE2PA(*pte);
+    memmove(mem, (char*)pa, PGSIZE);
+    mappages(p->pagetable, va, PGSIZE, pa, PTE_FLAGS(*pte) | PTE_W);
+    // re-execute the faulting instruction
   } else if((which_dev = devintr()) != 0){
     // this is a timer interrupt or device interrupt
   } else {
+unexpected:
     printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
     printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
     setkilled(p);

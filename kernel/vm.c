@@ -343,8 +343,10 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   uint64 pa, i;
   uint flags;
   // char *mem;
-
+  printf("uvmcopy: old pgtbl\n");
+  vmprint(old);
   for(i = 0; i < sz; i += PGSIZE){
+    printf("uvmcopy: mapping va %lx ... ", i);
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
@@ -353,6 +355,8 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     *pte = (*pte) & (~PTE_W);
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
+    // set PTE_COW for parent
+    *pte = (*pte) | PTE_COW;
     // if((mem = kalloc()) == 0)
     //   goto err;
     // memmove(mem, (char*)pa, PGSIZE);
@@ -360,7 +364,9 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       // kfree(mem);
       goto err;
     }
+    printf("success\n");
   }
+  printf("uvmcopy: mapping success\n");
   return 0;
 
  err:

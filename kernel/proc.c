@@ -310,7 +310,7 @@ fork(void)
   if((np = allocproc()) == 0){
     return -1;
   }
-  printf("2222\n");
+
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     printf("fork: uvmcopy failed");
