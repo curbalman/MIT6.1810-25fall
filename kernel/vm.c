@@ -342,45 +342,6 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  // char *mem;
-  printf("uvmcopy: old pgtbl\n");
-  vmprint(old);
-  for(i = 0; i < sz; i += PGSIZE){
-    printf("uvmcopy: mapping va %lx ... ", i);
-    if((pte = walk(old, i, 0)) == 0)
-      panic("uvmcopy: pte should exist");
-    if((*pte & PTE_V) == 0)
-      panic("uvmcopy: page not present");
-    // Clear PTE_W for both child and parent that have PTE_W set
-    *pte = (*pte) & (~PTE_W);
-    pa = PTE2PA(*pte);
-    flags = PTE_FLAGS(*pte);
-    // set PTE_COW for parent
-    *pte = (*pte) | PTE_COW;
-    // if((mem = kalloc()) == 0)
-    //   goto err;
-    // memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, pa, flags) != 0){
-      // kfree(mem);
-      goto err;
-    }
-    printf("success\n");
-  }
-  printf("uvmcopy: mapping success\n");
-  return 0;
-
- err:
-  uvmunmap(new, 0, i / PGSIZE, 0);
-  return -1;
-}
-
-
-int
-uvmcopy_old(pagetable_t old, pagetable_t new, uint64 sz)
-{
-  pte_t *pte;
-  uint64 pa, i;
-  uint flags;
   char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
@@ -526,38 +487,76 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 
 
 #ifdef LAB_PGTBL
+
 static void
-print_pgtbl(pagetable_t pagetable, int level)
+print_pte(pte_t *pte) {
+  
+  uint32 flags = PTE_FLAGS(*pte);
+  char flagname[11];
+  memset(flagname, '\0', 11);  // null terminated
+  flagname[9] = (flags&PTE_V)    ? 'v' : '-';
+  flagname[8] = (flags&PTE_R)    ? 'r' : '-';
+  flagname[7] = (flags&PTE_W)    ? 'w' : '-';
+  flagname[6] = (flags&PTE_X)    ? 'x' : '-';
+  flagname[5] = (flags&PTE_U)    ? 'u' : '-';
+  flagname[4] = (flags&PTE_G)    ? 'g' : '-';
+  flagname[3] = (flags&PTE_A)    ? 'a' : '-';
+  flagname[2] = (flags&PTE_D)    ? 'd' : '-';
+  flagname[1] = (flags&PTE_RSW0) ? '1' : '-';
+  flagname[0] = (flags&PTE_RSW1) ? '1' : '-';
+  printf("pa %p fl %s\n", (void*)PTE2PA(*pte), flagname);
+}
+
+static void
+print_pgtbl(pagetable_t pagetable, int level, uint64 baseva)
 {
+  const char *const indents[] = {".. .. ..", ".. ..", ".."};
   if (level>2 || level<0) {
     printf("print_pgtbl: invalid level %d\n", level);
     return;
   }
-  const char *const indents[] = {".. .. ..", ".. ..", ".."};
   for(int i = 0; i < 512; i++){
     pte_t pte = pagetable[i];
-    if (!(pte & PTE_V))
-      continue;
-    printf("%s%d: pte %p pa %p fl 0x%lx\n", indents[level], i,
-            (void*)pte, (void*)PTE2PA(pte), PTE_FLAGS(pte));
+    uint64 va;
+
+    if (!(pte & PTE_V)) continue;
+    // 构造当前pte对应的虚拟地址
+    switch(level) {
+      case 0:
+        va = baseva + (uint64)PGSIZE * i;
+        break;
+      case 1:
+        va = baseva + (uint64)PGSIZE * 512 * i;
+        break;
+      case 2:
+        va = baseva + (uint64)PGSIZE * 512 * 512 * i;
+        break;
+      default:
+        va = ~0ul;  // invalid: 0xffff...
+        break;
+    }
+    printf("%s%d: va %p ", indents[level], i, (void*)va);
+    print_pte(&pte);
+
     if(PTE_LEAF(pte) || level == 0){
       // leaf
+      continue;
     } else {
       // this PTE points to a lower-level page table.
       uint64 child = PTE2PA(pte);
-      print_pgtbl((pagetable_t)child, level-1);
+      print_pgtbl((pagetable_t)child, level-1, va);
     }
   }
 }
 
-
 // print any pagetable
 void
 vmprint(pagetable_t pagetable) {
-  printf("*****page table %p*********\n", pagetable);
-  print_pgtbl(pagetable, 2);
+  printf("********* page table %p *********\n", pagetable);
+  print_pgtbl(pagetable, 2, 0);
   
 }
+
 #endif
 
 
