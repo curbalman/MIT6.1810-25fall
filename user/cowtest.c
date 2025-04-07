@@ -218,10 +218,34 @@ forkforktest()
   printf("ok\n");
 }
 
+void
+mytest01()
+{
+  printf("mytest01:\n");
+  int x = 5;
+  printf("parent pgtbl before\n");
+  kpgtbl();
+  if (fork()==0) {
+    printf("child pgtbl before\n");
+    kpgtbl();
+    x = 6;
+    printf("child pgtbl after\n");
+    kpgtbl();
+    printf("ok\n");
+    exit(0);
+  } else {
+    int st = x;
+    wait(&st);
+    printf("parent pgtbl after\n");
+    kpgtbl();
+  }
+}
+
 int
 main(int argc, char *argv[])
 {
   printf("cowtest start\n");
+  mytest01();
   simpletest();
 
   // check that the first simpletest() freed the physical memory.

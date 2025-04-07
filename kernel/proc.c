@@ -182,7 +182,7 @@ freeproc(struct proc *p)
 }
 
 // Create a user page table for a given process, with no user memory,
-// but with trampoline and trapframe pages mapped
+// but with trampoline/trapframe/usyscall pages mapped
 // but doesn't do kalloc for trapframe and usyscall
 pagetable_t
 proc_pagetable(struct proc *p)
