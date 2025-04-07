@@ -338,7 +338,7 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
 int
-uvmcopy_cow(pagetable_t old, pagetable_t new, uint64 sz)
+uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i;
@@ -383,7 +383,7 @@ uvmcopy_cow(pagetable_t old, pagetable_t new, uint64 sz)
 
 
 int
-uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+uvmcopy_nocow(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i;
@@ -532,7 +532,7 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 }
 
 
-static void
+void
 print_pte(pte_t *pte) {
   
   uint32 flags = PTE_FLAGS(*pte);

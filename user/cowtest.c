@@ -221,23 +221,26 @@ forkforktest()
 void
 mytest01()
 {
-  printf("mytest01:\n");
+  printf("mytest01: starting\n");
   int x = 5;
-  printf("parent pgtbl before\n");
-  kpgtbl();
+  printf("parent: pgtbl before\n");
+  //kpgtbl();
   if (fork()==0) {
-    printf("child pgtbl before\n");
-    kpgtbl();
+    printf("child: pgtbl before\n");
+    //kpgtbl();
     x = 6;
-    printf("child pgtbl after\n");
-    kpgtbl();
-    printf("ok\n");
+    printf("child: pgtbl after\n");
+    //kpgtbl();
+    
     exit(0);
   } else {
+    printf("parent: waiting for child\n");
     int st = x;
+    printf("parent: xxx\n");
     wait(&st);
     printf("parent pgtbl after\n");
-    kpgtbl();
+    //kpgtbl();
+    printf("parent: mytest01: ok\n");
   }
 }
 

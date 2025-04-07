@@ -50,6 +50,7 @@ void kernelvec();
 
 extern int devintr();
 void alarm_update();
+void cow_handler();
 
 void
 trapinit(void)
@@ -100,8 +101,12 @@ usertrap(void)
     intr_on();
 
     syscall();
-    idebugf("syscall() return\n");
-  } // this is a timer interrupt or device interrupt
+    //idebugf("syscall() return\n");
+  } // Store/AMO page fault, is it COW?
+  else if(r_scause() == 15) {
+    cow_handler();  // note that cow_handler might never return
+  }
+  // this is a timer interrupt or device interrupt
   else if((which_dev = devintr()) != 0) {
     if(which_dev == 2) {
       alarm_update();
@@ -120,12 +125,12 @@ usertrap(void)
   usertrapret();
   panic("usertrap: control should not reach here\n");
 
-  unexpected:
-    printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
-    printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
-    setkilled(p);
-    if(killed(p))  exit(-1);
-    usertrapret();
+unexpected:
+  printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
+  printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+  setkilled(p);
+  if(killed(p))  exit(-1);
+  usertrapret();
 }
 
 //
@@ -278,4 +283,55 @@ alarm_update()
       p->trapframe->epc = p->handler;   // jump to handler function in user space
     }
   }
+}
+
+void 
+cow_handler()
+{
+  uint64 va, newpa;
+  pte_t *pte;
+  int flags;
+  struct proc *p = myproc();
+
+  va = r_stval();
+  pte = walk(p->pagetable, va, 0);
+  if (*pte == 0)  panic("cow_handler: null pte\n");
+  // if not writeable, kill the process
+  if (!(*pte & PTE_COW))  goto not_writeable;
+  idebugf("cow page!!! va 0x%lx\nold pte: ", va);
+  debugdo(print_pte, pte);
+  va = PGROUNDDOWN(va);
+  // kalloc new pape, memmove, map new page w/ PTE_W and w/o PTE_COW
+  if((newpa = (uint64)kalloc()) == 0) {
+    printf("cow_handler(): kalloc for cow page failed, killing process\n");
+    goto kill;
+  }
+
+  memmove((void*)newpa, (char*)PTE2PA(*pte), PGSIZE);
+  uvmunmap(p->pagetable, va, 1, 0);
+  // set PTE_W, clear PTE_COW
+  flags = PTE_FLAGS(*pte);
+  idebugf("000 %x\n", flags);
+  flags |= PTE_W;
+  idebugf("111 %x\n", flags);
+  flags &= (~PTE_COW);
+  idebugf("222 %x\n", flags);
+  if(mappages(p->pagetable, va, PGSIZE, newpa, flags) != 0) {
+    kfree((void*)newpa);
+    printf("cow_handler(): mappages failed\n");
+    goto kill;
+  }
+  idebugf("new pte: ");
+  pte_t *newpte = walk(p->pagetable, va, 0);
+  debugdo(print_pte, newpte);
+  return;
+
+not_writeable:
+  printf("cow_handler(): not a cow page scause 0x%lx pid=%d\n", r_scause(), p->pid);
+  printf("               sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+  printf("               write to read-only page?\n");
+kill:
+  setkilled(p);
+  if(killed(p))  exit(-1);
+  usertrapret();
 }
