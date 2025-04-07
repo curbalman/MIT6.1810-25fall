@@ -64,6 +64,10 @@
 #undef debug_raw
 #undef idebug_raw
 
+#ifndef static_assert
+#define static_assert(a, b) do { switch (0) case 0: case (a): ; } while (0)
+#endif
+
 /* If NDEBUG is defined, the debugging functions shouldn't print anything. The
  * standard states that assert.h should support being re-included, to allow
  * having different NDEBUG states in different places (e.g. a library header
