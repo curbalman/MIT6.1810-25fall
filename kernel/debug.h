@@ -148,7 +148,6 @@
 // 计算参数数量，返回1（如果只有一个参数）或 2（如果有两个或更多参数 或 0 （如果没有参数）
 #define __nargs_0(...) __nargs_1(__VA_ARGS__, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0)
 #define __nargs_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, ...) q
-#define ttt() __nargs_0()
 
 /* Force 4 * 4 = 16 preprocessor passes on the arguments. */
 #define __eval_0(...) __eval_1(__eval_1(__eval_1(__eval_1(__VA_ARGS__))))

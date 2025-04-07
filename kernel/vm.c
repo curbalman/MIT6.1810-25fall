@@ -7,6 +7,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
+#include "debug.h"
 
 /*
  * the kernel's page table.
@@ -342,6 +343,49 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   pte_t *pte;
   uint64 pa, i;
   uint flags;
+  // char *mem;
+  idebugf("old pgtbl before uvmcopy\n");
+  vmprint(old);
+  for(i = 0; i < sz; i += PGSIZE){
+    idebugf("mapping va %lx ... ", i);
+    if((pte = walk(old, i, 0)) == 0)
+      panic("uvmcopy: pte should exist");
+    if((*pte & PTE_V) == 0)
+      panic("uvmcopy: page not present");
+    // Clear PTE_W for both child and parent that have PTE_W set
+    *pte = (*pte) & (~PTE_W);
+    pa = PTE2PA(*pte);
+    flags = PTE_FLAGS(*pte);
+    // set PTE_COW for parent
+    *pte = (*pte) | PTE_COW;
+    // if((mem = kalloc()) == 0)
+    //   goto err;
+    // memmove(mem, (char*)pa, PGSIZE);
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
+      // kfree(mem);
+      goto err;
+    }
+    debugf("success\n");
+  }
+  idebugf("mapping success\n");
+  idebugf("old pgtbl after uvmcopy\n");
+  vmprint(old);
+  idebugf("new pgtbl\n");
+  vmprint(new);
+  return 0;
+
+ err:
+  uvmunmap(new, 0, i / PGSIZE, 0);
+  return -1;
+}
+
+
+int
+uvmcopy_old(pagetable_t old, pagetable_t new, uint64 sz)
+{
+  pte_t *pte;
+  uint64 pa, i;
+  uint flags;
   char *mem;
 
   for(i = 0; i < sz; i += PGSIZE){
@@ -486,8 +530,6 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 }
 
 
-#ifdef LAB_PGTBL
-
 static void
 print_pte(pte_t *pte) {
   
@@ -552,12 +594,10 @@ print_pgtbl(pagetable_t pagetable, int level, uint64 baseva)
 // print any pagetable
 void
 vmprint(pagetable_t pagetable) {
-  printf("********* page table %p *********\n", pagetable);
+  printf("*********page table %p*********\n", pagetable);
   print_pgtbl(pagetable, 2, 0);
   
 }
-
-#endif
 
 
 

@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "debug.h"
 
 struct cpu cpus[NCPU];
 
@@ -304,7 +305,7 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
-  printf("fork: forking %s\n", p->name);
+  idebugf("forking %s\n", p->name);
 
   // Allocate process.
   if((np = allocproc()) == 0){
@@ -318,6 +319,7 @@ fork(void)
     release(&np->lock);
     return -1;
   }
+  idebugf("uvmcopy success\n");
   np->sz = p->sz;
 
   // copy saved user registers.
@@ -348,6 +350,7 @@ fork(void)
   np->state = RUNNABLE;
   release(&np->lock);
 
+  idebugf("forked %s\n", p->name);
   return pid;
 }
 

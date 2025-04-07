@@ -38,6 +38,7 @@ usyscall
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "debug.h"
 
 struct spinlock tickslock;
 uint ticks;
@@ -98,6 +99,7 @@ usertrap(void)
     intr_on();
 
     syscall();
+    idebugf("syscall() return\n");
   } else if (r_scause() == 15) {
     //  Store/AMO page fault, is it COW?
     uint64 va, pa;
