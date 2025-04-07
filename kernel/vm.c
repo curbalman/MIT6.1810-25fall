@@ -345,7 +345,7 @@ uvmcopy_cow(pagetable_t old, pagetable_t new, uint64 sz)
   uint flags;
   // char *mem;
   idebugf("old pgtbl before uvmcopy\n");
-  vmprint(old);
+  debugdo(vmprint, old);
   for(i = 0; i < sz; i += PGSIZE){
     idebugf("mapping va %lx ... ", i);
     if((pte = walk(old, i, 0)) == 0)
@@ -371,9 +371,9 @@ uvmcopy_cow(pagetable_t old, pagetable_t new, uint64 sz)
   }
   idebugf("mapping success\n");
   idebugf("old pgtbl after uvmcopy\n");
-  vmprint(old);
+  debugdo(vmprint, old);
   idebugf("new pgtbl\n");
-  vmprint(new);
+  debugdo(vmprint, new);
   return 0;
 
  err:
