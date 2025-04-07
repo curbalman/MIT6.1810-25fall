@@ -360,7 +360,7 @@ uvmcopy_cow(pagetable_t old, pagetable_t new, uint64 sz)
     }
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    
+
     // defer kalloc and memmove to page fault
 
     if(mappages(new, i, PGSIZE, pa, flags) != 0){

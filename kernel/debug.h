@@ -84,6 +84,7 @@
 #define idebug_raw(...) ((void)0)
 #define debugf(...) ((void)0)
 #define idebugf(...) ((void)0)
+#define debugdo(func,...) ((void)0)
 
 #else
 
@@ -213,5 +214,7 @@
 #define idebug_raw(...) __custom_idebug(__debug_raw_P_, " ", __VA_ARGS__)
 #define debugf(...) printf(__VA_ARGS__)
 #define idebugf(...) (__print_info(" "), debugf(__VA_ARGS__))
+
+#define debugdo(func,...) func(__VA_ARGS__)
 
 #endif /* NDEBUG */
