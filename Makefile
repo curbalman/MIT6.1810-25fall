@@ -116,6 +116,10 @@ endif
 qemu: $K/kernel fs.img
 	$(QEMU) $(QEMUOPTS)
 
+ndebug: XCFLAGS += -DNDEBUG
+ndebug: $K/kernel fs.img
+	$(QEMU) $(QEMUOPTS)
+
 ifndef CPUS
 # set CPU to 1, easier for debugging
 CPUS := 1

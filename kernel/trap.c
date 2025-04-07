@@ -100,7 +100,7 @@ usertrap(void)
     intr_on();
 
     syscall();
-    //idebugf("syscall() return\n");
+    idebugf("syscall() return\n");
   } // this is a timer interrupt or device interrupt
   else if((which_dev = devintr()) != 0) {
     if(which_dev == 2) {
