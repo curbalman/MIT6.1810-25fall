@@ -1,3 +1,4 @@
+// https://github.com/esneider/debug
 /* The MIT License (MIT)
  *
  * Copyright (c) 2015 Dario Sneidermanis <dariosn@gmail.com>
@@ -81,6 +82,8 @@
 #define idebug(...) ((void)0)
 #define debug_raw(...) ((void)0)
 #define idebug_raw(...) ((void)0)
+#define debugf(...) ((void)0)
+#define idebugf(...) ((void)0)
 
 #else
 
@@ -142,8 +145,10 @@
  * rest. In combination, they resolve to 1 if there's just one argument, or 2
  * if there's more than that.
  */
+// 计算参数数量，返回1（如果只有一个参数）或 2（如果有两个或更多参数 或 0 （如果没有参数）
 #define __nargs_0(...) __nargs_1(__VA_ARGS__, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 1, 0)
 #define __nargs_1(a, b, c, d, e, f, g, h, i, j, k, l, m, n, o, p, q, ...) q
+#define ttt() __nargs_0()
 
 /* Force 4 * 4 = 16 preprocessor passes on the arguments. */
 #define __eval_0(...) __eval_1(__eval_1(__eval_1(__eval_1(__VA_ARGS__))))
@@ -174,7 +179,7 @@
  * take care of the formatting and printing of the arguments, and the optional
  * file and line information.
  */
-#define __print_info(sep) printf("%s:%d:%s", __FILE__, __LINE__, sep)
+#define __print_info(sep) printf("%s:%d:%s():%s", __FILE__, __LINE__, __func__, sep)
 #define __custom_debug(P, ...) (__print_0(P, __VA_ARGS__), printf("\n"))
 #define __custom_idebug(P, sep, ...) (__print_info(sep), __custom_debug(P, __VA_ARGS__))
 
@@ -207,5 +212,7 @@
 
 #define debug_raw(...) __custom_debug(__debug_raw_P_, __VA_ARGS__)
 #define idebug_raw(...) __custom_idebug(__debug_raw_P_, " ", __VA_ARGS__)
+#define debugf(...) printf(__VA_ARGS__)
+#define idebugf(...) (__print_info(" "), debugf(__VA_ARGS__))
 
 #endif /* NDEBUG */
