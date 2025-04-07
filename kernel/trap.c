@@ -49,6 +49,7 @@ extern char trampoline[], uservec[], userret[];
 void kernelvec();
 
 extern int devintr();
+void alarm_update();
 
 void
 trapinit(void)
@@ -99,61 +100,32 @@ usertrap(void)
     intr_on();
 
     syscall();
-    idebugf("syscall() return\n");
-  } else if (r_scause() == 15) {
-    //  Store/AMO page fault, is it COW?
-    uint64 va, pa;
-    pte_t *pte;
-    char *mem;
+    //idebugf("syscall() return\n");
+  } // this is a timer interrupt or device interrupt
+  else if((which_dev = devintr()) != 0) {
+    if(which_dev == 2) {
+      alarm_update();
+      // give up the CPU if this is a timer interrupt.
+      yield();
+    } else if (which_dev == 1) {
 
-    va = r_stval();
-    pte = walk(p->pagetable, va, 0);
-    if (pte == 0)  goto unexpected;
-    // if not a cow page or not writable, kill the process
-    if (!(*pte & PTE_COW))  goto unexpected;
-    if (!(*pte & PTE_W))    goto unexpected;
-    printf("usertrap: cow page!!!!!");
-    // kalloc new pape, copy, map new page with PTE_W set
-    if((mem = kalloc()) == 0) {
-      printf("usertrap(): kalloc for cow page failed, killing process\n");
-      setkilled(p);
+    } else {
+      panic("usertrap: control should not reach here\n");
     }
-    pa = PTE2PA(*pte);
-    memmove(mem, (char*)pa, PGSIZE);
-    mappages(p->pagetable, va, PGSIZE, pa, PTE_FLAGS(*pte) | PTE_W);
-    // re-execute the faulting instruction
-  } else if((which_dev = devintr()) != 0){
-    // this is a timer interrupt or device interrupt
   } else {
-unexpected:
+    goto unexpected;
+  }
+
+  if(killed(p))  exit(-1);
+  usertrapret();
+  panic("usertrap: control should not reach here\n");
+
+  unexpected:
     printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
     printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
     setkilled(p);
-  }
-
-  if(killed(p))
-    exit(-1);
-
-  // give up the CPU if this is a timer interrupt.
-  if(which_dev == 2) {
-    if (p->alarm_enabled && p->ticks > 0 ) {
-      int *passed = &(p->tickspassed);
-      // passed++; 如果时间到了，就调用handler
-      if ((*passed)++ >= p->ticks) {
-        // alarm!
-        *passed = 0;
-        if (p->handler == MAXVA)  panic("usertrap: invalid handler address");
-        p->alarm_enabled = 0;             // disable alarm, prevent reentrant alarm calls
-                                          // 例如，在handler执行的时候，时间又到了，handler会被再次调用 
-        p->sigframe = *(p->trapframe);    // 保存interrupt发生时的状态  
-        p->trapframe->epc = p->handler;   // jump to handler function in user space
-      }
-    }
-    yield();
-  }
-    
-
-  usertrapret();
+    if(killed(p))  exit(-1);
+    usertrapret();
 }
 
 //
@@ -289,3 +261,21 @@ devintr()
   }
 }
 
+void
+alarm_update()
+{
+  struct proc *p = myproc();
+  if (p->alarm_enabled && p->ticks > 0 ) {
+    int *passed = &(p->tickspassed);
+    // passed++; 如果时间到了，就调用handler
+    if ((*passed)++ >= p->ticks) {
+      // alarm!
+      *passed = 0;
+      if (p->handler == MAXVA)  panic("usertrap: invalid handler address");
+      p->alarm_enabled = 0;             // disable alarm, prevent reentrant alarm calls
+                                        // 例如，在handler执行的时候，时间又到了，handler会被再次调用 
+      p->sigframe = *(p->trapframe);    // 保存interrupt发生时的状态  
+      p->trapframe->epc = p->handler;   // jump to handler function in user space
+    }
+  }
+}

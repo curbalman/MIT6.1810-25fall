@@ -338,7 +338,7 @@ uvmfree(pagetable_t pagetable, uint64 sz)
 // returns 0 on success, -1 on failure.
 // frees any allocated pages on failure.
 int
-uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
+uvmcopy_cow(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i;
@@ -352,15 +352,17 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
-    // Clear PTE_W for both child and parent that have PTE_W set
-    *pte = (*pte) & (~PTE_W);
+
+    // set cow bit ONLY for writeable page
+    if (*pte & PTE_W) {
+      *pte = (*pte) & (~PTE_W);   // clear PTE_W
+      *pte = (*pte) | PTE_COW;    // set PTE_COW
+    }
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    // set PTE_COW for parent
-    *pte = (*pte) | PTE_COW;
-    // if((mem = kalloc()) == 0)
-    //   goto err;
-    // memmove(mem, (char*)pa, PGSIZE);
+    
+    // defer kalloc and memmove to page fault
+
     if(mappages(new, i, PGSIZE, pa, flags) != 0){
       // kfree(mem);
       goto err;
@@ -381,7 +383,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 
 
 int
-uvmcopy_old(pagetable_t old, pagetable_t new, uint64 sz)
+uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i;
