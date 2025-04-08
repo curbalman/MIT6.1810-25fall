@@ -290,7 +290,7 @@ cow_handler()
 {
   uint64 va, newpa;
   pte_t *pte;
-  int flags;
+  uint64 flags;
   struct proc *p = myproc();
 
   va = r_stval();
@@ -307,15 +307,13 @@ cow_handler()
     goto kill;
   }
 
-  memmove((void*)newpa, (char*)PTE2PA(*pte), PGSIZE);
-  uvmunmap(p->pagetable, va, 1, 0);
   // set PTE_W, clear PTE_COW
   flags = PTE_FLAGS(*pte);
-  idebugf("000 %x\n", flags);
   flags |= PTE_W;
-  idebugf("111 %x\n", flags);
   flags &= (~PTE_COW);
-  idebugf("222 %x\n", flags);
+
+  memmove((void*)newpa, (char*)PTE2PA(*pte), PGSIZE);
+  uvmunmap(p->pagetable, va, 1, 0);
   if(mappages(p->pagetable, va, PGSIZE, newpa, flags) != 0) {
     kfree((void*)newpa);
     printf("cow_handler(): mappages failed\n");
