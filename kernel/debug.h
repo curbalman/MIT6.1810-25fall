@@ -85,6 +85,7 @@
 #define debugf(...) ((void)0)
 #define idebugf(...) ((void)0)
 #define debugdo(func,...) ((void)0)
+#define debugassert(cond, msg) ((void)0)
 
 #else
 
@@ -212,9 +213,13 @@
 
 #define debug_raw(...) __custom_debug(__debug_raw_P_, __VA_ARGS__)
 #define idebug_raw(...) __custom_idebug(__debug_raw_P_, " ", __VA_ARGS__)
+
+
 #define debugf(...) printf(__VA_ARGS__)
 #define idebugf(...) (__print_info(" "), debugf(__VA_ARGS__))
 
-#define debugdo(func,...) func(__VA_ARGS__)
+#define debugdo(func,args...) func(args)
+#define debugassert(cond, fmt, ...) ((cond) ? ((void)0) : (__assert_fail(fmt, ##__VA_ARGS__)))
+#define __assert_fail(fmt, ...) (idebugf("assertion fail: "), debugf(fmt, ##__VA_ARGS__), panic("assertion fail"))
 
 #endif /* NDEBUG */
