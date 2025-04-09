@@ -128,6 +128,7 @@ usertrap(void)
 unexpected:
   printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
   printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+  panic("usertrap(): unexpected scause\n");
   setkilled(p);
   if(killed(p))  exit(-1);
   usertrapret();
@@ -313,7 +314,7 @@ cow_handler()
   flags &= (~PTE_COW);
 
   memmove((void*)newpa, (char*)PTE2PA(*pte), PGSIZE);
-  uvmunmap(p->pagetable, va, 1, 0);
+  uvmunmap(p->pagetable, va, 1, 1);
   if(mappages(p->pagetable, va, PGSIZE, newpa, flags) != 0) {
     kfree((void*)newpa);
     printf("cow_handler(): mappages failed\n");

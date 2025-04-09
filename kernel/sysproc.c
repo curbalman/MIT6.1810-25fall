@@ -30,6 +30,7 @@ sys_fork(void)
 uint64
 sys_wait(void)
 {
+  idebugf("called\n");
   uint64 p;
   argaddr(0, &p);
   return wait(p);

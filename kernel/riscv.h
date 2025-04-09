@@ -406,3 +406,7 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
 
 #define PTE_COW PTE_RSW0
+
+// 总共物理页数量
+#define NPHYPG (PPN(PHYSTOP))
+#define PPN(pa) (((uint64)(pa)-KERNBASE)>>PGSHIFT)  // 相当于除以PGSIZE

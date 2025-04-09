@@ -195,14 +195,14 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 void
 uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 {
-  uint64 a;
+  uint64 pa;
   pte_t *pte;
   int sz;
 
   if((va % PGSIZE) != 0)
     panic("uvmunmap: not aligned");
 
-  for(a = va; a < va + npages*PGSIZE; a += sz){
+  for(uint64 a = va; a < va + npages*PGSIZE; a += sz) {
     sz = PGSIZE;
     if((pte = walk(pagetable, a, 0)) == 0)
       panic("uvmunmap: walk");
@@ -212,10 +212,10 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
     }
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
-    if(do_free){
-      uint64 pa = PTE2PA(*pte);
-      kfree((void*)pa);
-    }
+
+    pa = PTE2PA(*pte);
+    changeref(pa, -1);
+    if(do_free)  kfree((void*)pa);
     *pte = 0;
   }
 }
@@ -318,6 +318,7 @@ freewalk(pagetable_t pagetable)
       panic("freewalk: leaf");
     }
   }
+  changeref((uint64)pagetable, -1);
   kfree((void*)pagetable);
 }
 
@@ -345,7 +346,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   uint flags;
   // char *mem;
   idebugf("old pgtbl before uvmcopy\n");
-  debugdo(vmprint, old);
+  //debugdo(vmprint, old);
   for(i = 0; i < sz; i += PGSIZE){
     idebugf("mapping va %lx ... ", i);
     if((pte = walk(old, i, 0)) == 0)
@@ -367,13 +368,14 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       // kfree(mem);
       goto err;
     }
+    changeref(pa, +1);
     debugf("success\n");
   }
   idebugf("mapping success\n");
   idebugf("old pgtbl after uvmcopy\n");
-  debugdo(vmprint, old);
+  //debugdo(vmprint, old);
   idebugf("new pgtbl\n");
-  debugdo(vmprint, new);
+  //debugdo(vmprint, new);
   return 0;
 
  err:

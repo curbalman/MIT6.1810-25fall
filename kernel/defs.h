@@ -1,3 +1,4 @@
+#include "debug.h"
 //  inter-module interfaces
 #ifdef LAB_MMAP
 typedef unsigned long size_t;
@@ -68,6 +69,7 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
+void            changeref(uint64 pa, int increment);
 
 // log.c
 void            initlog(int, struct superblock*);

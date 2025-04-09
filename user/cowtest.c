@@ -235,6 +235,7 @@ mytest01()
     exit(0);
   } else {
     printf("parent: waiting for child\n");
+    printf("%d\n", x);
     int st = x;
     printf("parent: xxx\n");
     wait(&st);
