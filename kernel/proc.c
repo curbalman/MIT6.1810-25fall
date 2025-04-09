@@ -5,7 +5,6 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
-#include "debug.h"
 
 struct cpu cpus[NCPU];
 
@@ -31,7 +30,7 @@ struct spinlock wait_lock;
 // Map it high in memory, followed by an invalid
 // guard page.
 void
-proc_mapstacks(pagetable_t kpgtbl)
+make_kstack(pagetable_t kpgtbl)
 {
   struct proc *p;
   
@@ -40,7 +39,7 @@ proc_mapstacks(pagetable_t kpgtbl)
     if(pa == 0)
       panic("kalloc");
     uint64 va = KSTACK((int) (p - proc));
-    kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W);
+    kvmmap(kpgtbl, va, (uint64)pa, PGSIZE, PTE_R | PTE_W, 1);
   }
 }
 
@@ -200,7 +199,7 @@ proc_pagetable(struct proc *p)
   // only the supervisor uses it, on the way
   // to/from user space, so not PTE_U.
   if(mappages(pagetable, TRAMPOLINE, PGSIZE,
-              (uint64)trampoline, PTE_R | PTE_X) < 0){
+              (uint64)trampoline, PTE_R | PTE_X, 1) < 0){
     uvmfree(pagetable, 0);
     return 0;
   }
@@ -208,14 +207,14 @@ proc_pagetable(struct proc *p)
   // map the trapframe page just below the trampoline page, for
   // trampoline.S.
   if(mappages(pagetable, TRAPFRAME, PGSIZE,
-              (uint64)(p->trapframe), PTE_R | PTE_W) < 0){
+              (uint64)(p->trapframe), PTE_R | PTE_W, 1) < 0){
     uvmunmap(pagetable, TRAMPOLINE, 1, 0);
     uvmfree(pagetable, 0);
     return 0;
   }
 
   if(mappages(pagetable, USYSCALL, PGSIZE,
-              (uint64)(p->usyscall), PTE_R | PTE_U) < 0) {
+              (uint64)(p->usyscall), PTE_R | PTE_U, 1) < 0) {
       uvmunmap(pagetable, TRAMPOLINE, 1, 0);
       uvmunmap(pagetable, TRAPFRAME, 1, 0);
       uvmfree(pagetable, 0);

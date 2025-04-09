@@ -95,7 +95,7 @@ int             cpuid(void);
 void            exit(int);
 int             fork(void);
 int             growproc(int);
-void            proc_mapstacks(pagetable_t);
+void            make_kstack(pagetable_t);
 pagetable_t     proc_pagetable(struct proc *);
 void            proc_freepagetable(pagetable_t, uint64);
 int             kill(int);
@@ -161,6 +161,8 @@ void            trapinit(void);
 void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
+int             is_cow(pte_t *pte);
+void            cow_handler(pagetable_t pgtbl, uint64 va, pte_t *oldpte);
 
 // uart.c
 void            uartinit(void);
@@ -172,18 +174,16 @@ int             uartgetc(void);
 // vm.c
 void            kvminit(void);
 void            kvminithart(void);
-void            kvmmap(pagetable_t, uint64, uint64, uint64, int);
-int             mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm);
+pte_t *         walk(pagetable_t, uint64, int);
+uint64          walkaddr(pagetable_t, uint64);
+int             mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm, int do_refcnt);
+void            uvmunmap(pagetable_t, uint64 va, uint64 npages, int do_free);
 pagetable_t     uvmcreate(void);
-void            uvmfirst(pagetable_t, uchar *, uint);
 uint64          uvmalloc(pagetable_t, uint64, uint64, int);
 uint64          uvmdealloc(pagetable_t, uint64, uint64);
 int             uvmcopy(pagetable_t, pagetable_t, uint64);
 void            uvmfree(pagetable_t, uint64);
-void            uvmunmap(pagetable_t, uint64 va, uint64 npages, int do_free);
 void            uvmclear(pagetable_t, uint64);
-pte_t *         walk(pagetable_t, uint64, int);
-uint64          walkaddr(pagetable_t, uint64);
 int             copyout(pagetable_t, uint64, char *, uint64);
 int             copyin(pagetable_t, char *, uint64, uint64);
 int             copyinstr(pagetable_t, char *, uint64, uint64);
@@ -194,6 +194,9 @@ void            vmprint(pagetable_t);
 #ifdef LAB_PGTBL
 pte_t*          pgpte(pagetable_t, uint64);
 #endif
+// not for general use below
+void kvmmap(pagetable_t kpgtbl, uint64 va, uint64 pa, uint64 sz, int perm, int do_refcnt);
+void uvmfirst(pagetable_t pagetable, uchar *src, uint sz);
 
 // plic.c
 void            plicinit(void);
