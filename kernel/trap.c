@@ -103,10 +103,10 @@ usertrap(void)
     //idebugf("syscall() return\n");
   } // Store/AMO page fault, is it COW?
   else if(r_scause() == 15) {
-    pte_t pte;
     uint64 va = r_stval();
-    if ( (pte=get_cowpte(p->pagetable, va)) )
-      cow_handler(va, pte);
+    pte_t *pte = walk(p->pagetable, va, 0);
+    if (is_cow(pte))
+      cow_handler(p->pagetable, va, pte);
     else goto unexpected;
   }
   // this is a timer interrupt or device interrupt
@@ -305,10 +305,12 @@ void
 cow_handler(pagetable_t pgtbl, uint64 va, pte_t *oldpte)
 {
   uint64 newpa, flags;
+  struct proc *p;
 
-  debugassert(get_cowpte(pgtbl, va), "va must be cow\n");
+
+  debugassert(is_cow(walk(pgtbl, va, 0)), "va must be cow\n");
   idebugf("cow page!!! va 0x%lx\nold pte: ", va);
-  debugdo(print_pte, *oldpte);
+  debugdo(print_pte, oldpte);
 
   // kalloc new pape, memmove, map new page w/ PTE_W and w/o PTE_COW
   if((newpa = (uint64)kalloc()) == 0) {
@@ -334,6 +336,7 @@ cow_handler(pagetable_t pgtbl, uint64 va, pte_t *oldpte)
   return;
 
 kill:
+  p = myproc();
   setkilled(p);
   if(killed(p))  exit(-1);
   usertrapret();

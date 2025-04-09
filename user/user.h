@@ -1,5 +1,6 @@
 #pragma once
 #include "kernel/types.h"
+#include "kernel/debug.h"
 #ifdef LAB_MMAP
 typedef unsigned long size_t;
 typedef long int off_t;

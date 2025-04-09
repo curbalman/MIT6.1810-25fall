@@ -52,7 +52,8 @@ kvminit(void)
 
   // map the trampoline for trap entry/exit to
   // the highest virtual address in the kernel.
-  kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X, 1);
+  // TRAMPOLINE already do_refcnt while mapping kernel text, so do_refcnt=0
+  kvmmap(kpgtbl, TRAMPOLINE, (uint64)trampoline, PGSIZE, PTE_R | PTE_X, 0);
 
   // allocate and map a kernel stack for each process.
   make_kstack(kpgtbl);
@@ -105,7 +106,7 @@ walk(pagetable_t pagetable, uint64 va, int alloc)
       // create page-table pages
       if(!alloc || (pagetable = (pde_t*)kalloc()) == 0)
         return 0;
-      addrefcnt(pagetable, +1);
+      addrefcnt((uint64)pagetable, +1);
       memset(pagetable, 0, PGSIZE);
       *pte = PA2PTE(pagetable) | PTE_V;
     }
@@ -304,10 +305,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   uint64 pa, i;
   uint flags;
 
-  idebugf("old pgtbl before uvmcopy\n");
-  //debugdo(vmprint, old);
   for(i = 0; i < sz; i += PGSIZE){
-    idebugf("mapping va %lx ... ", i);
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
@@ -327,13 +325,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       kfree((void*)pa);
       goto err;
     }
-    debugf("success\n");
   }
-  idebugf("mapping success\n");
-  idebugf("old pgtbl after uvmcopy\n");
-  //debugdo(vmprint, old);
-  idebugf("new pgtbl\n");
-  //debugdo(vmprint, new);
   return 0;
 
  err:
@@ -399,7 +391,7 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
     if (va0 >= MAXVA)
       return -1;
     if((pte = walk(pagetable, va0, 0)) == 0) {
-      printf("copyout: pte should exist 0x%x %d\n", dstva, len);
+      printf("copyout: pte should exist 0x%lx %ld\n", dstva, len);
       return -1;
     }
 

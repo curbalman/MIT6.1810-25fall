@@ -39,6 +39,8 @@ refcnt_p(uint64 pa)
 static void
 setref(uint64 pa, int cnt)
 {
+  if (PGROUNDDOWN(pa) == 0x80007000L)
+  printf(".");
   *(refcnt_p(pa)) = cnt;
 }
 
@@ -77,7 +79,7 @@ kinit()
   initlock(&kmem.lock, "kmem");
   initlock(&kmem.reflk, "reflock");
   freerange(end, (void*)PHYSTOP);
-  idebugf("KERNBASE: 0x%lx, PHYSTOP: 0x%lx, total physical page: 0x%lx\n", KERNBASE, PHYSTOP, NPHYPG);
+  idebugf("KERNBASE: 0x%lx, end: 0x%lx, PHYSTOP: 0x%lx, total physical page: 0x%lx\n", KERNBASE, (uint64)end, PHYSTOP, NPHYPG);
 }
 
 void
@@ -113,7 +115,6 @@ kfree(void *pa)
 
   acquire(&kmem.reflk);
   if (addrefcnt_nolk((uint64)pa, -1) <= 0) {
-    debugf(".");
     setref((uint64)pa, INVALID_REFCNT);
     acquire(&kmem.lock);
     r->next = kmem.freelist;

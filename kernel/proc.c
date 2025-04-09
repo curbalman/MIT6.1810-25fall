@@ -304,7 +304,7 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
-  idebugf("forking %s(%d)\n", p->name, p->pid);
+  idebugf("called\n");
 
   // Allocate process.
   if((np = allocproc()) == 0){
