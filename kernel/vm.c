@@ -179,6 +179,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
     if(*pte & PTE_V)
       panic("mappages: remap");
     *pte = PA2PTE(pa) | perm | PTE_V;
+    addrefcnt(pa, +1);
     if(a == last)
       break;
     a += PGSIZE;
@@ -213,8 +214,10 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: not a leaf");
 
     pa = PTE2PA(*pte);
-    changeref(pa, -1);
-    if(do_free)  kfree((void*)pa);
+    if(do_free)
+      kfree((void*)pa);
+    else
+      addrefcnt(pa, -1);
     *pte = 0;
   }
 }
@@ -317,7 +320,6 @@ freewalk(pagetable_t pagetable)
       panic("freewalk: leaf");
     }
   }
-  changeref((uint64)pagetable, -1);
   kfree((void*)pagetable);
 }
 
@@ -367,7 +369,6 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
       // kfree(mem);
       goto err;
     }
-    changeref(pa, +1);
     debugf("success\n");
   }
   idebugf("mapping success\n");

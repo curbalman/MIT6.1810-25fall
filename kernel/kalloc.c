@@ -23,6 +23,7 @@ struct {
   struct spinlock lock;
   struct spinlock reflk;
   struct run *freelist;
+  // change refcnt in mappages(+1), kalloc(FREED->0), kfree(-1), uvmunmap(-1)
   int refcnt[NPHYPG];
 } kmem;
 
@@ -30,7 +31,23 @@ struct {
 static int*
 refcnt_p(uint64 pa)
 {
+  debugassert((pa>=KERNBASE) && (pa<=PHYSTOP), "pa must be a RAM address\n");
   return kmem.refcnt + PPN(pa);
+}
+
+// caller must held kmem.reflk
+static void
+setref(uint64 pa, int cnt)
+{
+  *(refcnt_p(pa)) = cnt;
+}
+
+// caller must held kmem.reflk
+static int
+addrefcnt_nolk(uint64 pa, int increment)
+{
+  setref(pa, *refcnt_p(pa) + increment);
+  return *refcnt_p(pa);
 }
 
 int
@@ -46,20 +63,12 @@ refcnt(uint64 pa)
 
 // pa need not be page aligned
 void
-changeref(uint64 pa, int increment)
+addrefcnt(uint64 pa, int increment)
 {
   acquire(&kmem.reflk);
-  *(refcnt_p(pa)) += increment;
+  addrefcnt_nolk(pa, increment);
   release(&kmem.reflk);
 }
-
-// static void
-// setref(uint64 pa, int cnt)
-// {
-//   acquire(&kmem.reflk);
-//   *(refcnt_p(pa)) = cnt;
-//   release(&kmem.reflk);
-// }
 
 
 void
@@ -68,6 +77,7 @@ kinit()
   initlock(&kmem.lock, "kmem");
   initlock(&kmem.reflk, "reflock");
   freerange(end, (void*)PHYSTOP);
+  idebugf("KERNBASE: 0x%lx, PHYSTOP: 0x%lx, total physical page: 0x%lx\n", KERNBASE, PHYSTOP, NPHYPG);
 }
 
 void
@@ -101,8 +111,9 @@ kfree(void *pa)
   r = (struct run*)pa;
 
   acquire(&kmem.reflk);
-  if (--(*refcnt_p((uint64)pa)) <= 0) {
-    *refcnt_p((uint64)pa) = 0;
+  if (addrefcnt_nolk((uint64)pa, -1) <= 0) {
+    debugf(".");
+    setref((uint64)pa, INVALID_REFCNT);
     acquire(&kmem.lock);
     r->next = kmem.freelist;
     kmem.freelist = r;
@@ -125,8 +136,8 @@ kalloc(void)
   acquire(&kmem.lock);
   r = kmem.freelist;
   if(r) {
-    debugassert(*refcnt_p((uint64)r) == 0, "refcnt not zero, pa %p\n", (void*)r);
-    *refcnt_p((uint64)r) = 1;     // 此时一定有一个进程在使用
+    debugassert(*refcnt_p((uint64)r) == INVALID_REFCNT, "re-kalloc, pa %p\n", (void*)r);
+    setref((uint64)r, 0);     // mappages会把refcnt设为1
     kmem.freelist = r->next;
   }
   release(&kmem.lock);

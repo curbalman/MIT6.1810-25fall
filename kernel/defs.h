@@ -69,7 +69,7 @@ void            ramdiskrw(struct buf*);
 void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
-void            changeref(uint64 pa, int increment);
+void            addrefcnt(uint64 pa, int increment);
 int             refcnt(uint64 pa);
 
 // log.c
