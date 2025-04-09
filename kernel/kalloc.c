@@ -28,9 +28,20 @@ struct {
 
 // caller must held kmem.reflk
 static int*
-refcnt(uint64 pa)
+refcnt_p(uint64 pa)
 {
   return kmem.refcnt + PPN(pa);
+}
+
+int
+refcnt(uint64 pa)
+{
+  int x;
+
+  acquire(&kmem.reflk);
+  x = *refcnt_p(pa);
+  release(&kmem.reflk);
+  return x;
 }
 
 // pa need not be page aligned
@@ -38,7 +49,7 @@ void
 changeref(uint64 pa, int increment)
 {
   acquire(&kmem.reflk);
-  *(refcnt(pa)) += increment;
+  *(refcnt_p(pa)) += increment;
   release(&kmem.reflk);
 }
 
@@ -46,7 +57,7 @@ changeref(uint64 pa, int increment)
 // setref(uint64 pa, int cnt)
 // {
 //   acquire(&kmem.reflk);
-//   *(refcnt(pa)) = cnt;
+//   *(refcnt_p(pa)) = cnt;
 //   release(&kmem.reflk);
 // }
 
@@ -90,8 +101,8 @@ kfree(void *pa)
   r = (struct run*)pa;
 
   acquire(&kmem.reflk);
-  if (--(*refcnt((uint64)pa)) <= 0) {
-    *refcnt((uint64)pa) = 0;
+  if (--(*refcnt_p((uint64)pa)) <= 0) {
+    *refcnt_p((uint64)pa) = 0;
     acquire(&kmem.lock);
     r->next = kmem.freelist;
     kmem.freelist = r;
@@ -114,8 +125,8 @@ kalloc(void)
   acquire(&kmem.lock);
   r = kmem.freelist;
   if(r) {
-    debugassert(*refcnt((uint64)r) == 0, "refcnt not zero, pa %p\n", (void*)r);
-    *refcnt((uint64)r) = 1;     // 此时一定有一个进程在使用
+    debugassert(*refcnt_p((uint64)r) == 0, "refcnt not zero, pa %p\n", (void*)r);
+    *refcnt_p((uint64)r) = 1;     // 此时一定有一个进程在使用
     kmem.freelist = r->next;
   }
   release(&kmem.lock);

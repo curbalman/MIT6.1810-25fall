@@ -305,13 +305,15 @@ fork(void)
   int i, pid;
   struct proc *np;
   struct proc *p = myproc();
-  idebugf("forking %s\n", p->name);
+  idebugf("forking %s(%d)\n", p->name, p->pid);
 
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
   }
-
+  idebugf("forking %s(%d) -> (%d)\n", p->name, p->pid, np->pid);
+  idebugf("parent pgtbl before:\n");
+  debugdo(vmprint, p->pagetable);
   // Copy user memory from parent to child.
   if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
     printf("fork: uvmcopy failed");
@@ -349,8 +351,11 @@ fork(void)
   np->tracemask = p->tracemask;
   np->state = RUNNABLE;
   release(&np->lock);
-
-  idebugf("forked %s\n", p->name);
+  idebugf("parent pgtbl after:\n");
+  debugdo(vmprint, p->pagetable);
+  idebugf("child pgtbl after:\n");
+  debugdo(vmprint, np->pagetable);
+  idebugf("fork success %s(%d) -> (%d)\n", p->name, p->pid, np->pid);
   return pid;
 }
 

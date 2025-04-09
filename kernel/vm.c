@@ -7,7 +7,6 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "fs.h"
-#include "debug.h"
 
 /*
  * the kernel's page table.
@@ -536,21 +535,21 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 
 void
 print_pte(pte_t *pte) {
-  
+  uint64 pa = PTE2PA(*pte);
   uint32 flags = PTE_FLAGS(*pte);
   char flagname[11];
-  memset(flagname, '\0', 11);  // null terminated
-  flagname[9] = (flags&PTE_V)    ? 'v' : '-';
-  flagname[8] = (flags&PTE_R)    ? 'r' : '-';
-  flagname[7] = (flags&PTE_W)    ? 'w' : '-';
-  flagname[6] = (flags&PTE_X)    ? 'x' : '-';
-  flagname[5] = (flags&PTE_U)    ? 'u' : '-';
-  flagname[4] = (flags&PTE_G)    ? 'g' : '-';
-  flagname[3] = (flags&PTE_A)    ? 'a' : '-';
-  flagname[2] = (flags&PTE_D)    ? 'd' : '-';
-  flagname[1] = (flags&PTE_RSW0) ? '1' : '-';
-  flagname[0] = (flags&PTE_RSW1) ? '1' : '-';
-  printf("pa %p fl %s\n", (void*)PTE2PA(*pte), flagname);
+  flagname[10] = '\0';            // null terminated
+  flagname[9]  = (flags&PTE_V)    ? 'v' : '-';
+  flagname[8]  = (flags&PTE_R)    ? 'r' : '-';
+  flagname[7]  = (flags&PTE_W)    ? 'w' : '-';
+  flagname[6]  = (flags&PTE_X)    ? 'x' : '-';
+  flagname[5]  = (flags&PTE_U)    ? 'u' : '-';
+  flagname[4]  = (flags&PTE_G)    ? 'g' : '-';
+  flagname[3]  = (flags&PTE_A)    ? 'a' : '-';
+  flagname[2]  = (flags&PTE_D)    ? 'd' : '-';
+  flagname[1]  = (flags&PTE_RSW0) ? '1' : '-';
+  flagname[0]  = (flags&PTE_RSW1) ? '1' : '-';
+  printf("pa %p fl %s ref %d\n", (void*)pa, flagname, refcnt(pa));
 }
 
 static void

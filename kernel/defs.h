@@ -70,6 +70,7 @@ void*           kalloc(void);
 void            kfree(void *);
 void            kinit(void);
 void            changeref(uint64 pa, int increment);
+int             refcnt(uint64 pa);
 
 // log.c
 void            initlog(int, struct superblock*);
