@@ -105,8 +105,8 @@ usertrap(void)
   else if(r_scause() == 15) {
     uint64 va = r_stval();
     pte_t *pte = walk(p->pagetable, va, 0);
-    if (is_cow(pte))
-      cow_handler(p->pagetable, va, pte);
+    if ( is_cow(pte) && (cow_handler(p->pagetable, va, pte)==0) )
+      ;
     else goto unexpected;
   }
   // this is a timer interrupt or device interrupt
@@ -300,13 +300,12 @@ is_cow(pte_t *pte)
     return 0;
 }
 
-// va must be cow,
-void 
+// va must be cow
+// return 0 if success
+int 
 cow_handler(pagetable_t pgtbl, uint64 va, pte_t *oldpte)
 {
   uint64 newpa, flags;
-  struct proc *p;
-
 
   debugassert(is_cow(walk(pgtbl, va, 0)), "va must be cow\n");
   idebugf("cow page!!! va 0x%lx\nold pte: ", va);
@@ -315,7 +314,7 @@ cow_handler(pagetable_t pgtbl, uint64 va, pte_t *oldpte)
   // kalloc new pape, memmove, map new page w/ PTE_W and w/o PTE_COW
   if((newpa = (uint64)kalloc()) == 0) {
     printf("cow_handler(): kalloc for cow page failed, killing process\n");
-    goto kill;
+    return -1;
   }
 
   va = PGROUNDDOWN(va);
@@ -328,16 +327,10 @@ cow_handler(pagetable_t pgtbl, uint64 va, pte_t *oldpte)
   if(mappages(pgtbl, va, PGSIZE, newpa, flags, 1) != 0) {
     kfree((void*)newpa);
     printf("cow_handler(): mappages failed\n");
-    goto kill;
+    return -1;
   }
   idebugf("new pte: ");
   pte_t *newpte = walk(pgtbl, va, 0);
   debugdo(print_pte, newpte);
-  return;
-
-kill:
-  p = myproc();
-  setkilled(p);
-  if(killed(p))  exit(-1);
-  usertrapret();
+  return 0;
 }

@@ -162,7 +162,7 @@ void            trapinithart(void);
 extern struct spinlock tickslock;
 void            usertrapret(void);
 int             is_cow(pte_t *pte);
-void            cow_handler(pagetable_t pgtbl, uint64 va, pte_t *oldpte);
+int            cow_handler(pagetable_t pgtbl, uint64 va, pte_t *oldpte);
 
 // uart.c
 void            uartinit(void);

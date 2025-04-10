@@ -395,8 +395,8 @@ copyout(pagetable_t pagetable, uint64 dstva, char *src, uint64 len)
       return -1;
     }
 
-    if (is_cow(pte))
-      cow_handler(pagetable, va0, pte);
+    if ( is_cow(pte) && (cow_handler(pagetable, va0, pte)==0) )
+      ;
     // forbid copyout over read-only user text pages.
     else if((*pte & PTE_W) == 0)
       return -1;
