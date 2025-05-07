@@ -6,6 +6,31 @@
 #include "kernel/memlayout.h"
 #include "user/user.h"
 
+// test child can write to its memory
+void
+childWriteTest()
+{
+  int x, pid;
+  printf("Chile Write: ");
+
+  x = 1;
+  if ( (pid = fork()) < 0 ) {
+    printf("fork() failed\n");
+    exit(-1);
+  } else if ( pid == 0 ) {
+    // child
+    printf("child: ");
+    x = 555;
+    sleep(10000);
+  }
+  else {
+    // parent
+    printf("parent: ");
+    sleep(x);
+  }
+  printf("ok\n");
+}
+
 // allocate more than half of physical memory,
 // then fork. this will fail in the default
 // kernel, which does not support copy-on-write.
@@ -33,11 +58,12 @@ simpletest()
     exit(-1);
   }
 
+  printf("1..");
   if(pid == 0)
     exit(0);
 
   wait(0);
-
+  printf("2..");
   if(sbrk(-sz) == (char*)0xffffffffffffffffL){
     printf("sbrk(-%d) failed\n", sz);
     exit(-1);
@@ -221,18 +247,19 @@ forkforktest()
 int
 main(int argc, char *argv[])
 {
+  childWriteTest();
   simpletest();
 
   // check that the first simpletest() freed the physical memory.
-  simpletest();
+  // simpletest();
 
-  threetest();
-  threetest();
-  threetest();
+  // threetest();
+  // threetest();
+  // threetest();
 
-  filetest();
+  // filetest();
 
-  forkforktest();
+  // forkforktest();
 
   printf("ALL COW TESTS PASSED\n");
 

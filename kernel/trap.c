@@ -13,6 +13,7 @@ extern char trampoline[], uservec[], userret[];
 
 // in kernelvec.S, calls kerneltrap().
 void kernelvec();
+static int cow_handler();
 
 extern int devintr();
 
@@ -65,6 +66,15 @@ usertrap(void)
     intr_on();
 
     syscall();
+  } else if(r_scause() == 15) {
+    // it's a Store/AMO page fault
+    // deal with COW page, or kill the process on illegal write
+    if (!cow_handler()) {
+      printf("usertrap(): Store/AMO page fault pid=%d\n", p->pid);
+      printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+      setkilled(p);
+    }
+
   } else if((which_dev = devintr()) != 0){
     // ok
   } else {
@@ -216,3 +226,39 @@ devintr()
   }
 }
 
+// Handle cow page
+// return 1 on success
+// return 0 if fail or it's not a cow page
+static int
+cow_handler()
+{
+  struct proc *p;
+  uint64 va, newpa;
+  pte_t *oldpte, flags;
+
+  p = myproc();
+  va = PGROUNDDOWN(r_stval());
+  oldpte = walk(p->pagetable, va, 0);
+  // not a cow page
+  if ( !(*oldpte & PTE_COW) ) return 0;
+  /* kalloc(), copy old page,
+   * and install the new page with PTE_W set and PTE_COW cleared*/
+  // BUG: clear cow bit in old pte if refcnt==1
+  //      otherwise the old pte will never be kfree
+
+  if( (newpa = (uint64)kalloc()) == 0) {
+    printf("cow_handler: no free memory, killing process\n");
+    return 0;
+  }
+  memmove((void*)newpa, (char*)PTE2PA(*oldpte), PGSIZE);
+  flags = PTE_FLAGS(*oldpte);
+  flags |= PTE_W;   // set PTE_W
+  flags &= (~PTE_COW);  // clear PTE_COW
+  uvmunmap(p->pagetable, va, 1, 1);
+  if(mappages(p->pagetable, va, PGSIZE, newpa, flags) != 0) {
+    kfree((void*)newpa);
+    return 0;
+  }
+  
+  return 1;
+}

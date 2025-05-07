@@ -190,7 +190,7 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: not mapped");
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
-    if(do_free){
+    if(do_free && !(*pte & PTE_COW)){
       uint64 pa = PTE2PA(*pte);
       kfree((void*)pa);
     }
@@ -348,7 +348,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   }
   // printf("Parent pgtbl after:\n");
   // vmprint(old);
-  // printf("child pgtbl before:\n");
+  // printf("child pgtbl after:\n");
   // vmprint(new);
   // printf("*************uvmcopy*************\n");
   return 0;
