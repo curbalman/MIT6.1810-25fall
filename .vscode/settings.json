@@ -1,0 +1,11 @@
+{
+    "C_Cpp.autocompleteAddParentheses": true,
+    "C_Cpp.default.compilerPath": "/usr/bin/riscv64-linux-gnu-gcc",
+    "C_Cpp.errorSquiggles": "enabled",
+    "task.slowProviderWarning": true,
+    "files.associations": {
+        "*.c": "c",
+        "*.h": "c"
+    },
+    "C_Cpp.default.configurationProvider": "ms-vscode.makefile-tools",
+}
