@@ -303,40 +303,59 @@ uvmfree(pagetable_t pagetable, uint64 sz)
   freewalk(pagetable);
 }
 
-// Given a parent process's page table, copy
-// its memory into a child's page table.
-// Copies both the page table and the
-// physical memory.
+// Given a parent process's page table, 
+// map the parent's physical pages into the child.
+// Dose not allocate physical memory
+// Clears PTE_W and sets PTE_COW of both parent and child
 // returns 0 on success, -1 on failure.
-// frees any allocated pages on failure.
 int
 uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
 {
   pte_t *pte;
   uint64 pa, i;
   uint flags;
-  char *mem;
+  // char *mem;
+
+  // printf("*************uvmcopy*************\n");
+  // printf("Parent pgtbl before:\n");
+  // vmprint(old);
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
       panic("uvmcopy: pte should exist");
     if((*pte & PTE_V) == 0)
       panic("uvmcopy: page not present");
+    
+    // set parent's cow bit, ONLY for writeable page
+    if (*pte & PTE_W) {
+      *pte = (*pte) & (~PTE_W);   // clear PTE_W
+      *pte = (*pte) | PTE_COW;    // set PTE_COW
+    }
     pa = PTE2PA(*pte);
     flags = PTE_FLAGS(*pte);
-    if((mem = kalloc()) == 0)
-      goto err;
-    memmove(mem, (char*)pa, PGSIZE);
-    if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
-      kfree(mem);
-      goto err;
+    // COW: defer kalloc and memmove to page fault
+    // if((mem = kalloc()) == 0)
+    //   goto err;
+    // memmove(mem, (char*)pa, PGSIZE);
+    // if(mappages(new, i, PGSIZE, (uint64)mem, flags) != 0){
+    //   kfree(mem);
+    //   goto err;
+    // }
+    if(mappages(new, i, PGSIZE, pa, flags) != 0){
+      return -1;
     }
+
   }
+  // printf("Parent pgtbl after:\n");
+  // vmprint(old);
+  // printf("child pgtbl before:\n");
+  // vmprint(new);
+  // printf("*************uvmcopy*************\n");
   return 0;
 
- err:
-  uvmunmap(new, 0, i / PGSIZE, 1);
-  return -1;
+//  err:
+//   uvmunmap(new, 0, i / PGSIZE, 1);
+//   return -1;
 }
 
 // mark a PTE invalid for user access.
@@ -448,4 +467,71 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
   } else {
     return -1;
   }
+}
+
+void
+print_pte(pte_t *pte) {
+  uint64 pa = PTE2PA(*pte);
+  uint32 flags = PTE_FLAGS(*pte);
+  char flagname[11];
+  flagname[10] = '\0';            // null terminated
+  flagname[9]  = (flags&PTE_V)    ? 'v' : '-';
+  flagname[8]  = (flags&PTE_R)    ? 'r' : '-';
+  flagname[7]  = (flags&PTE_W)    ? 'w' : '-';
+  flagname[6]  = (flags&PTE_X)    ? 'x' : '-';
+  flagname[5]  = (flags&PTE_U)    ? 'u' : '-';
+  flagname[4]  = (flags&PTE_G)    ? 'g' : '-';
+  flagname[3]  = (flags&PTE_A)    ? 'a' : '-';
+  flagname[2]  = (flags&PTE_D)    ? 'd' : '-';
+  flagname[1]  = (flags&PTE_RSW0) ? '1' : '-';
+  flagname[0]  = (flags&PTE_RSW1) ? '1' : '-';
+  // printf("pa %p fl %s ref %d\n", (void*)pa, flagname, refcnt());
+  printf("pa %p fl %s\n", (void*)pa, flagname);
+}
+
+static void
+print_level_pgtbl(pagetable_t pagetable, int level, uint64 baseva)
+{
+  const char *const indents[] = {".. .. ..", ".. ..", ".."};
+  if (level>2 || level<0) {
+    printf("print_pgtbl: invalid level %d\n", level);
+    return;
+  }
+  for(int i = 0; i < 512; i++){
+    pte_t pte = pagetable[i];
+    uint64 va;
+
+    if (!(pte & PTE_V)) continue;
+    // 构造当前pte对应的虚拟地址
+    switch(level) {
+      case 0:
+        va = baseva + (uint64)PGSIZE * i;
+        break;
+      case 1:
+        va = baseva + (uint64)PGSIZE * 512 * i;
+        break;
+      case 2:
+        va = baseva + (uint64)PGSIZE * 512 * 512 * i;
+        break;
+      default:
+        va = ~0ul;  // invalid: 0xffff...
+        break;
+    }
+    printf("%s%d: va %p ", indents[level], i, (void*)va);
+    print_pte(&pte);
+
+    if(PTE_LEAF(pte) || level == 0){
+      // leaf
+      continue;
+    } else {
+      // this PTE points to a lower-level page table.
+      uint64 child = PTE2PA(pte);
+      print_level_pgtbl((pagetable_t)child, level-1, va);
+    }
+  }
+}
+
+void
+vmprint(pagetable_t rootpgtbl) {
+  print_level_pgtbl(rootpgtbl, 2, 0);
 }

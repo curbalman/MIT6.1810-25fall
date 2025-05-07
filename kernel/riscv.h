@@ -357,11 +357,19 @@ typedef uint64 *pagetable_t; // 512 PTEs
 #define PGROUNDUP(sz)  (((sz)+PGSIZE-1) & ~(PGSIZE-1))
 #define PGROUNDDOWN(a) (((a)) & ~(PGSIZE-1))
 
-#define PTE_V (1L << 0) // valid
-#define PTE_R (1L << 1)
-#define PTE_W (1L << 2)
-#define PTE_X (1L << 3)
-#define PTE_U (1L << 4) // user can access
+#define PTE_V    (1L << 0) // valid
+#define PTE_R    (1L << 1)
+#define PTE_W    (1L << 2)
+#define PTE_X    (1L << 3)
+#define PTE_U    (1L << 4) // user can access
+#define PTE_G    (1L << 5) 
+#define PTE_A    (1L << 6)
+#define PTE_D    (1L << 7)
+#define PTE_RSW0 (1L << 8) // copy on write
+#define PTE_RSW1 (1L << 9)
+
+#define PTE_COW PTE_RSW0
+#define PTE_LEAF(pte) (((pte) & PTE_R) | ((pte) & PTE_W) | ((pte) & PTE_X))
 
 // shift a physical address to the right place for a PTE.
 #define PA2PTE(pa) ((((uint64)pa) >> 12) << 10)
