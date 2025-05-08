@@ -344,6 +344,7 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     if(mappages(new, i, PGSIZE, pa, flags) != 0){
       return -1;
     }
+    incrref((void*)pa);
 
   }
   // printf("Parent pgtbl after:\n");
@@ -485,8 +486,7 @@ print_pte(pte_t *pte) {
   flagname[2]  = (flags&PTE_D)    ? 'd' : '-';
   flagname[1]  = (flags&PTE_RSW0) ? '1' : '-';
   flagname[0]  = (flags&PTE_RSW1) ? '1' : '-';
-  // printf("pa %p fl %s ref %d\n", (void*)pa, flagname, refcnt());
-  printf("pa %p fl %s\n", (void*)pa, flagname);
+  printf("pa %p fl %s ref %d\n", (void*)pa, flagname, getref((void*)pa));
 }
 
 static void
