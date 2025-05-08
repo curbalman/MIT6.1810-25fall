@@ -57,3 +57,13 @@
 //   TRAPFRAME (p->trapframe, used by the trampoline)
 //   TRAMPOLINE (the same page as in the kernel)
 #define TRAPFRAME (TRAMPOLINE - PGSIZE)
+
+
+// for Copy-on-write
+// get the index in the array that keeps the "reference count" 
+#define PPX(pa) ( (uint64)(pa) >> 10 )  // /PGSIZE
+// number of physical pages
+#define NPHYPG PPX(PHYSTOP - KERNBASE)
+
+
+
