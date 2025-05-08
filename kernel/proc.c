@@ -210,6 +210,7 @@ proc_pagetable(struct proc *p)
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
+  printf("proc_freepagetable: %p\n", pagetable);
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
   uvmfree(pagetable, sz);
@@ -283,6 +284,7 @@ fork(void)
   struct proc *np;
   struct proc *p = myproc();
 
+  printf("fork start: %s\n", p->name);
   // Allocate process.
   if((np = allocproc()) == 0){
     return -1;
@@ -322,6 +324,7 @@ fork(void)
   np->state = RUNNABLE;
   release(&np->lock);
 
+  printf("fork finish: %s\n", p->name);
   return pid;
 }
 

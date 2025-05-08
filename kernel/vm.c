@@ -54,6 +54,7 @@ void
 kvminit(void)
 {
   kernel_pagetable = kvmmake();
+  printf("kvminit: kernal pgtbl: %p\n", kernel_pagetable);
 }
 
 // Switch h/w page table register to the kernel's page table,
@@ -208,6 +209,7 @@ uvmcreate()
   if(pagetable == 0)
     return 0;
   memset(pagetable, 0, PGSIZE);
+  printf("uvmcreate: create a new pgtbl: %p\n", pagetable);
   return pagetable;
 }
 
@@ -316,9 +318,9 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   uint flags;
   // char *mem;
 
-  // printf("*************uvmcopy*************\n");
-  // printf("Parent pgtbl before:\n");
-  // vmprint(old);
+  printf("*************uvmcopy*************\n");
+  printf("Parent pgtbl before:\n");
+  vmprint(old);
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
@@ -347,11 +349,11 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     incrref((void*)pa);
 
   }
-  // printf("Parent pgtbl after:\n");
-  // vmprint(old);
-  // printf("child pgtbl after:\n");
-  // vmprint(new);
-  // printf("*************uvmcopy*************\n");
+  printf("Parent pgtbl after:\n");
+  vmprint(old);
+  printf("child pgtbl after:\n");
+  vmprint(new);
+  printf("*************uvmcopy*************\n");
   return 0;
 
 //  err:
@@ -533,5 +535,13 @@ print_level_pgtbl(pagetable_t pagetable, int level, uint64 baseva)
 
 void
 vmprint(pagetable_t rootpgtbl) {
+  printf("vmprint: pgtbl %p\n", rootpgtbl);
   print_level_pgtbl(rootpgtbl, 2, 0);
+}
+
+void
+print_pte_va(pagetable_t pgtbl, uint64 va)
+{
+  pte_t *pte = walk(pgtbl, va, 0);
+  print_pte(pte);
 }

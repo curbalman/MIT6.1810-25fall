@@ -29,20 +29,9 @@ struct {
 // return the new refcnt
 // pa neec not be page-aligned
 int
-incrref(void *pa)
-{
-  return ++refcnts[PPX(pa)];
-}
-int
-decrref(void *pa)
-{
-  if( refcnts[PPX(pa)] == 0 )
-    panic("decref: attempt to set a negative refcnt");
-  return --refcnts[PPX(pa)];
-}
-int
 setref(void *pa, int cnt)
 {
+  if( (char*)pa < end || (uint64)pa >= PHYSTOP ) panic("setref: invalid address");
   if(cnt < 0) panic("setref: attempt to set a negative refcnt");
   return refcnts[PPX(pa)] = cnt;
 }
@@ -51,6 +40,17 @@ getref(void *pa)
 {
   return refcnts[PPX(pa)];
 }
+int
+incrref(void *pa)
+{
+  return setref(pa, getref(pa) + 1);
+}
+int
+decrref(void *pa)
+{
+  return setref(pa, getref(pa) - 1);
+}
+
 
 // Free physical memory but DOES NOT check refcnt
 static void
@@ -106,10 +106,14 @@ kfree(void *pa)
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
   
+  printf("kfree: %p...", pa);
   // do not free the page when there are still referencts to it
   if ( decrref(pa) == 0 ) {
     // no reference, free the memory
     dokfree(pa);
+    printf("freed\n");
+  } else {
+    printf("no free\n");
   }
 }
 
@@ -130,6 +134,7 @@ kalloc(void)
   if(r) {
     memset((char*)r, 5, PGSIZE); // fill with junk
     setref(r, 1);
+    printf("kalloc: %p\n", (void*)r);
   }
   return (void*)r;
 }

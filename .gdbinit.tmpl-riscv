@@ -5,5 +5,4 @@ symbol-file kernel/kernel
 set disassemble-next-line auto
 set riscv use-compressed-breakpoints yes
 layout split
-b *0x80001d4a # usertrap(): unexpected scause
-b *0x800057a2  # panic()
+b panic
