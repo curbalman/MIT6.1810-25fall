@@ -52,11 +52,39 @@ getref(void *pa)
   return refcnts[PPX(pa)];
 }
 
+// Free physical memory but DOES NOT check refcnt
+static void
+dokfree(void *pa)
+{
+  struct run *r;
+
+  // Fill with junk to catch dangling refs.
+  memset(pa, 1, PGSIZE);
+
+  r = (struct run*)pa;
+
+  acquire(&kmem.lock);
+  r->next = kmem.freelist;
+  kmem.freelist = r;
+  release(&kmem.lock);
+}
+
+// same as freerange but DOES NOT check refcnt
+static void
+dofreerange(void *pa_start, void *pa_end)
+{
+  char *p;
+  p = (char*)PGROUNDUP((uint64)pa_start);
+  for(; p + PGSIZE <= (char*)pa_end; p += PGSIZE)
+    dokfree(p);
+}
+
 void
 kinit()
 {
   initlock(&kmem.lock, "kmem");
-  freerange(end, (void*)PHYSTOP);
+  // freerange(end, (void*)PHYSTOP);
+  dofreerange(end, (void*)PHYSTOP);
 }
 
 void
@@ -75,23 +103,13 @@ freerange(void *pa_start, void *pa_end)
 void
 kfree(void *pa)
 {
-  struct run *r;
-
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
   
   // do not free the page when there are still referencts to it
   if ( decrref(pa) == 0 ) {
-    // free the physical page when no reference
-    // Fill with junk to catch dangling refs.
-    memset(pa, 1, PGSIZE);
-
-    r = (struct run*)pa;
-
-    acquire(&kmem.lock);
-    r->next = kmem.freelist;
-    kmem.freelist = r;
-    release(&kmem.lock);
+    // no reference, free the memory
+    dokfree(pa);
   }
 }
 
