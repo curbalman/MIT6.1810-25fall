@@ -248,18 +248,18 @@ int
 main(int argc, char *argv[])
 {
   childWriteTest();
-  //simpletest();
+  simpletest();
 
   // check that the first simpletest() freed the physical memory.
-  //simpletest();
+  simpletest();
 
-  // threetest();
-  // threetest();
-  // threetest();
+  threetest();
+  threetest();
+  threetest();
 
-  // filetest();
+  filetest();
 
-  // forkforktest();
+  forkforktest();
 
   printf("ALL COW TESTS PASSED\n");
 

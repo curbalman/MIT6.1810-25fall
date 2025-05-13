@@ -214,7 +214,7 @@ uvmcreate()
   if(pagetable == 0)
     return 0;
   memset(pagetable, 0, PGSIZE);
-  printf("uvmcreate: create a new pgtbl: %p\n", pagetable);
+  //printf("uvmcreate: create a new pgtbl: %p\n", pagetable);
   return pagetable;
 }
 
@@ -323,9 +323,9 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
   uint flags;
   // char *mem;
 
-  printf("*************uvmcopy*************\n");
-  printf("Parent pgtbl before:\n");
-  vmprint(old);
+  // printf("*************uvmcopy*************\n");
+  // printf("Parent pgtbl before:\n");
+  // vmprint(old);
 
   for(i = 0; i < sz; i += PGSIZE){
     if((pte = walk(old, i, 0)) == 0)
@@ -354,11 +354,11 @@ uvmcopy(pagetable_t old, pagetable_t new, uint64 sz)
     incrref((void*)pa);
 
   }
-  printf("Parent pgtbl after:\n");
-  vmprint(old);
-  printf("child pgtbl after:\n");
-  vmprint(new);
-  printf("*************uvmcopy*************\n");
+  // printf("Parent pgtbl after:\n");
+  // vmprint(old);
+  // printf("child pgtbl after:\n");
+  // vmprint(new);
+  // printf("*************uvmcopy*************\n");
   return 0;
 
 //  err:
