@@ -13,7 +13,6 @@ extern char trampoline[], uservec[], userret[];
 
 // in kernelvec.S, calls kerneltrap().
 void kernelvec();
-static int cow_handler();
 
 extern int devintr();
 
@@ -230,7 +229,7 @@ devintr()
 // Handle cow page
 // return 1 on success
 // return 0 if fail or it's not a cow page
-static int
+int
 cow_handler(pagetable_t pagetable, uint64 va)
 {
   uint64 newpa;
@@ -241,11 +240,9 @@ cow_handler(pagetable_t pagetable, uint64 va)
   if (oldpte == 0 || !(*oldpte & PTE_V) || !(*oldpte & PTE_U)
       || !(*oldpte & PTE_COW) )
     return 0;
+    
   /* kalloc(), copy old page,
    * and install the new page with PTE_W set and PTE_COW cleared*/
-  // BUG: clear cow bit in old pte if refcnt==1
-  //      otherwise the old pte will never be kfree
-
   if( (newpa = (uint64)kalloc()) == 0) {
     printf("cow_handler: no free memory, killing process\n");
     return 0;
