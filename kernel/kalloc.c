@@ -106,14 +106,14 @@ kfree(void *pa)
   if(((uint64)pa % PGSIZE) != 0 || (char*)pa < end || (uint64)pa >= PHYSTOP)
     panic("kfree");
   
-  printf("kfree: %p...", pa);
+  // printf("kfree: %p...", pa);
   // do not free the page when there are still referencts to it
-  if ( decrref(pa) == 0 ) {
+  if ( getref(pa) == 0 ) {
     // no reference, free the memory
     dokfree(pa);
-    printf("freed\n");
+    // printf("freed\n");
   } else {
-    printf("no free\n");
+    // printf("no free\n");
   }
 }
 
@@ -134,7 +134,7 @@ kalloc(void)
   if(r) {
     memset((char*)r, 5, PGSIZE); // fill with junk
     setref(r, 1);
-    printf("kalloc: %p\n", (void*)r);
+    // printf("kalloc: %p\n", (void*)r);
   }
   return (void*)r;
 }
