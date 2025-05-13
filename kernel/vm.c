@@ -13,6 +13,9 @@ pagetable_t kernel_pagetable;
 
 extern char etext[];  // kernel.ld sets this to end of kernel code.
 
+extern char end[]; // first address after kernel.
+                   // defined by kernel.ld.
+
 extern char trampoline[]; // trampoline.S
 
 // Make a direct-map page table for the kernel.
@@ -178,7 +181,7 @@ mappages(pagetable_t pagetable, uint64 va, uint64 size, uint64 pa, int perm)
 void
 uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
 {
-  uint64 a;
+  uint64 a, pa;
   pte_t *pte;
 
   if((va % PGSIZE) != 0)
@@ -191,8 +194,10 @@ uvmunmap(pagetable_t pagetable, uint64 va, uint64 npages, int do_free)
       panic("uvmunmap: not mapped");
     if(PTE_FLAGS(*pte) == PTE_V)
       panic("uvmunmap: not a leaf");
-    if(do_free && !(*pte & PTE_COW)){
-      uint64 pa = PTE2PA(*pte);
+    pa = PTE2PA(*pte);
+    if(do_free){
+      if( (char*)pa > end ) // proc_freepagetable() unmaps TRAMPLINE
+        decrref((void*)pa);
       kfree((void*)pa);
     }
     *pte = 0;

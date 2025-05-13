@@ -27,7 +27,7 @@ struct {
 
 // add/sub refcnt of addr pa
 // return the new refcnt
-// pa neec not be page-aligned
+// pa need not be page-aligned
 int
 setref(void *pa, int cnt)
 {
