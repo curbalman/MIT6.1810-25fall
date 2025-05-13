@@ -69,7 +69,7 @@ usertrap(void)
   } else if(r_scause() == 15) {
     // it's a Store/AMO page fault
     // deal with COW page, or kill the process on illegal write
-    if (!cow_handler()) {
+    if ( !cow_handler(p->pagetable, PGROUNDDOWN(r_stval())) ) {
       printf("usertrap(): Store/AMO page fault pid=%d\n", p->pid);
       printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
       setkilled(p);
@@ -231,17 +231,16 @@ devintr()
 // return 1 on success
 // return 0 if fail or it's not a cow page
 static int
-cow_handler()
+cow_handler(pagetable_t pagetable, uint64 va)
 {
-  struct proc *p;
-  uint64 va, newpa;
+  uint64 newpa;
   pte_t *oldpte, flags;
-
-  p = myproc();
-  va = PGROUNDDOWN(r_stval());
-  oldpte = walk(p->pagetable, va, 0);
+  
+  oldpte = walk(pagetable, va, 0);
   // not a cow page
-  if ( !(*oldpte & PTE_COW) ) return 0;
+  if (oldpte == 0 || !(*oldpte & PTE_V) || !(*oldpte & PTE_U)
+      || !(*oldpte & PTE_COW) )
+    return 0;
   /* kalloc(), copy old page,
    * and install the new page with PTE_W set and PTE_COW cleared*/
   // BUG: clear cow bit in old pte if refcnt==1
@@ -255,8 +254,8 @@ cow_handler()
   flags = PTE_FLAGS(*oldpte);
   flags |= PTE_W;   // set PTE_W
   flags &= (~PTE_COW);  // clear PTE_COW
-  uvmunmap(p->pagetable, va, 1, 1);
-  if(mappages(p->pagetable, va, PGSIZE, newpa, flags) != 0) {
+  uvmunmap(pagetable, va, 1, 1);
+  if(mappages(pagetable, va, PGSIZE, newpa, flags) != 0) {
     kfree((void*)newpa);
     return 0;
   }
