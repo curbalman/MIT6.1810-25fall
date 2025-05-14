@@ -110,8 +110,10 @@ e1000_transmit(char *buf, int len)
     // If STAT_DD is not set, 
     // the E1000 hasn't finished the corresponding previous transmission request
     // The ring is overflowing!
+    release(&e1000_lock);
     return -1;  // error
   }
+
   // otherwise, free the buffer
   if( ptdt->addr ) kfree((void*)(ptdt->addr));
   // fill in the descriptor
@@ -133,7 +135,23 @@ e1000_recv(void)
   // Check for packets that have arrived from the e1000
   // Create and deliver a buf for each packet (using net_rx()).
   //
+  int nextx;
+  struct rx_desc *pnext;
 
+  while( (nextx = (regs[E1000_RDT]+1) % RX_RING_SIZE) != regs[E1000_RDH] ) {
+    pnext = &rx_ring[nextx];
+    if( !(pnext->status & E1000_RXD_STAT_DD)      // no new packet available
+      || !(pnext->status & E1000_RXD_STAT_EOP) )  // e1000_recv only handles
+                                                  // 1 desc per package
+      break;
+    
+    net_rx((void*)(pnext->addr), pnext->length);
+    if( !(pnext->addr = (uint64)kalloc()) )
+      panic("e1000_lock: kalloc fail");
+    pnext->status = 0;
+
+    ++regs[E1000_RDT];
+  }
 }
 
 void
