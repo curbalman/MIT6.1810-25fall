@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.c": "c",
+        "e1000_dev.h": "c"
+    }
+}

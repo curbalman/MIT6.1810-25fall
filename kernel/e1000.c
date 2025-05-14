@@ -102,8 +102,26 @@ e1000_transmit(char *buf, int len)
   // a pointer so that it can be freed after send completes.
   //
 
-  
-  return 0;
+  acquire(&e1000_lock);
+  // the descriptor indexed by E1000_TDT
+  struct tx_desc *const ptdt = &tx_ring[regs[E1000_TDT]];
+
+  if( !(ptdt->status & E1000_TXD_STAT_DD) ) {
+    // If STAT_DD is not set, 
+    // the E1000 hasn't finished the corresponding previous transmission request
+    // The ring is overflowing!
+    return -1;  // error
+  }
+  // otherwise, free the buffer
+  if( ptdt->addr ) kfree((void*)(ptdt->addr));
+  // fill in the descriptor
+  ptdt->addr = (uint64)buf;
+  ptdt->length = len;
+  ptdt->cmd |= E1000_TXD_CMD_EOP;
+  ptdt->cmd |= E1000_TXD_CMD_RS;
+  regs[E1000_TDT] = (regs[E1000_TDT] + 1) % TX_RING_SIZE;
+  release(&e1000_lock);
+  return 0; // success
 }
 
 static void
