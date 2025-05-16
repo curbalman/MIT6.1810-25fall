@@ -88,6 +88,9 @@ kfree(void *pa)
 void *
 kalloc(void)
 {
+  // TODO：
+  // 1. 每次要偷页表时，不都从CPU0开始
+  // 2. 一次偷多几个页表
   struct run *r;
   int myid;
 
@@ -95,12 +98,15 @@ kalloc(void)
   myid = cpuid();
   acquire(&(kmem[myid].lock));
   r = kmem[myid].freelist;
-  if(r)
+  if(r) {
     kmem[myid].freelist = r->next;
+    release(&(kmem[myid].lock));
+  }
   else {  // steal
+    release(&(kmem[myid].lock));
     for (int i = 0; i < NCPU; ++i) {
       if ( i == myid ) continue;
-      acquire(&(kmem[i].lock)); // this may deadlock
+      acquire(&(kmem[i].lock));
       struct run *ri = kmem[i].freelist;
       if (ri) {
         r = ri;
@@ -111,7 +117,6 @@ kalloc(void)
       release(&(kmem[i].lock));
     }
   }
-  release(&(kmem[myid].lock));
   pop_off();
 
   if(r)
