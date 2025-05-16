@@ -23,17 +23,26 @@
 #include "fs.h"
 #include "buf.h"
 
-struct {
-  struct spinlock lock;
-  struct buf buf[NBUF];
-} bcache;
+struct spinlock bcachelock;
+struct bucket bcache[NBUCKET];
+
+static uint
+hash(unsigned int x) {
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = ((x >> 16) ^ x) * 0x45d9f3b;
+    x = (x >> 16) ^ x;
+    return x % NBUCKET;
+}
 
 void
 binit(void)
 {
-  initlock(&bcache.lock, "bcache");
-  for(int i = 0; i < NBUF; ++i) {
-    initsleeplock(&(bcache.buf[i].lock), "buffer");
+  initlock(&bcachelock, "bcache");
+  for(int i = 0; i < NBUCKET; ++i) {
+    struct bucket *bkt = &(bcache[i]);
+    for(int j = 0; j < BKTSIZE; ++j) {
+      initsleeplock(&(bkt->buf[j].lock), "buffer");
+    }
   }
 }
 
@@ -45,28 +54,28 @@ bget(uint dev, uint blockno)
 {
   struct buf *b;
 
-  acquire(&bcache.lock);
+  acquire(&bcachelock);
 
   // Is the block already cached?
-  for(int i = 0; i < NBUF; ++i) {
-    b = &(bcache.buf[i]);
+  for(int i = 0; i < BKTSIZE; ++i) {
+    b = &(bcache[hash(blockno)].buf[i]);
     if(b->dev == dev && b->blockno == blockno){
       b->refcnt++;
-      release(&bcache.lock);
+      release(&bcachelock);
       acquiresleep(&b->lock);
       return b;
     }
   }
 
   // Not cached.
-  for(int i = 0; i < NBUF; ++i) {
-    b = &(bcache.buf[i]);
+  for(int i = 0; i < BKTSIZE; ++i) {
+    b = &(bcache[hash(blockno)].buf[i]);
     if(b->refcnt == 0) {
       b->dev = dev;
       b->blockno = blockno;
       b->valid = 0;
       b->refcnt = 1;
-      release(&bcache.lock);
+      release(&bcachelock);
       acquiresleep(&b->lock);
       return b;
     }
@@ -106,23 +115,23 @@ brelse(struct buf *b)
 
   releasesleep(&b->lock);
 
-  acquire(&bcache.lock);
+  acquire(&bcachelock);
   b->refcnt--;
-  release(&bcache.lock);
+  release(&bcachelock);
 }
 
 void
 bpin(struct buf *b) {
-  acquire(&bcache.lock);
+  acquire(&bcachelock);
   b->refcnt++;
-  release(&bcache.lock);
+  release(&bcachelock);
 }
 
 void
 bunpin(struct buf *b) {
-  acquire(&bcache.lock);
+  acquire(&bcachelock);
   b->refcnt--;
-  release(&bcache.lock);
+  release(&bcachelock);
 }
 
 
