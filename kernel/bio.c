@@ -23,7 +23,7 @@
 #include "fs.h"
 #include "buf.h"
 
-struct spinlock bcachelock;
+//struct spinlock bcachelock;
 struct bucket bcache[NBUCKET];
 
 static uint
@@ -37,7 +37,7 @@ hash(unsigned int x) {
 void
 binit(void)
 {
-  initlock(&bcachelock, "bcache");
+  //initlock(&bcachelock, "bcache");
   for(int i = 0; i < NBUCKET; ++i) {
     struct bucket *bkt = &(bcache[i]);
     initlock(&(bkt->lock), "bcache.bucket");
@@ -70,7 +70,7 @@ bget(uint dev, uint blockno)
   const int mybkt = hash(blockno);
   int ibkt;
 
-  acquire(&bcachelock);
+  push_off();
 
   // Is the block already cached?
   // 从自己的桶开始搜索，如果自己的桶没有再搜索别人的桶
@@ -83,13 +83,17 @@ bget(uint dev, uint blockno)
       if(b->dev == dev && b->blockno == blockno){
         b->refcnt++;
         release( &(bcache[ibkt].lock) );
-        release(&bcachelock);
+        pop_off();
         acquiresleep(&b->lock);
         return b;
       }
     }
     release( &(bcache[ibkt].lock) );
   } while( (ibkt = (ibkt + 1) % NBUCKET) != mybkt );
+
+  // BUG: 其他CPU可能也bget同一个blockno，且两个CPU同时运行到这里，会造成重复分配
+  // 可以加一个驱逐锁，拿到锁之后再检查一遍blockno有没有缓存
+  // 见https://blog.miigon.net/posts/s081-lab8-locks/#%E6%96%B0%E7%9A%84%E9%97%AE%E9%A2%98%E9%87%8A%E6%94%BE%E8%87%AA%E8%BA%AB%E6%A1%B6%E9%94%81%E5%8F%AF%E8%83%BD%E4%BD%BF%E5%BE%97%E5%90%8C-blockno-%E9%87%8D%E5%A4%8D%E9%A9%B1%E9%80%90%E4%B8%8E%E5%88%86%E9%85%8D
 
   // Not cached.
   // 从自己桶(mybkt)的下一个桶开始搜索
@@ -105,7 +109,7 @@ bget(uint dev, uint blockno)
         b->valid = 0;
         b->refcnt = 1;
         release( &(bcache[ibkt].lock) );
-        release(&bcachelock);
+        pop_off();
         acquiresleep(&b->lock);
         return b;
       }
@@ -147,29 +151,29 @@ brelse(struct buf *b)
 
   releasesleep(&b->lock);
 
-  acquire(&bcachelock);
+  push_off();
   acquire(b->bktlk);
   b->refcnt--;
   release(b->bktlk);
-  release(&bcachelock);
+  pop_off();
 }
 
 void
 bpin(struct buf *b) {
-  acquire(&bcachelock);
+  push_off();
   acquire(b->bktlk);
   b->refcnt++;
   release(b->bktlk);
-  release(&bcachelock);
+  pop_off();
 }
 
 void
 bunpin(struct buf *b) {
-  acquire(&bcachelock);
+  push_off();
   acquire(b->bktlk);
   b->refcnt--;
   release(b->bktlk);
-  release(&bcachelock);
+  pop_off();
 }
 
 
