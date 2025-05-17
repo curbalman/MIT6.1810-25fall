@@ -3,6 +3,7 @@
         "*.c": "c",
         "user.h": "c",
         "spinlock.h": "c",
-        "param.h": "c"
+        "param.h": "c",
+        "buf.h": "c"
     }
 }

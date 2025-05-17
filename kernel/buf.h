@@ -12,5 +12,6 @@ struct buf {
 
 struct bucket {
   struct spinlock lock;
-  struct buf buf[BKTSIZE];  // TODO: 总的buf数量大于NBUF，不符合题目要求
+  // 总的buf数量大于NBUF，使用bktunused()限制
+  struct buf buf[BKTSIZE];
 };

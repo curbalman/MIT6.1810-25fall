@@ -47,6 +47,18 @@ binit(void)
   }
 }
 
+// 限制总的buf数量为NBUF
+// return 1 if buf is unused
+static int
+bktunused(int ibkt, int ibuf)
+{
+  // 不使用BKTSIZE*NBUCKET-NBUF个桶的最后一个buf
+  if( ibkt < (BKTSIZE*NBUCKET-NBUF) && ibuf == BKTSIZE-1 )
+    return 1;
+  else
+    return 0;
+}
+
 // Look through buffer cache for block on device dev.
 // If not found, allocate a buffer.
 // In either case, return locked buffer.
@@ -65,6 +77,7 @@ bget(uint dev, uint blockno)
   do {
     acquire( &(bcache[ibkt].lock) );
     for(int i = 0; i < BKTSIZE; ++i) {
+      if( bktunused(ibkt, i) ) continue;
       b = &(bcache[ibkt].buf[i]);
       if(b->dev == dev && b->blockno == blockno){
         b->refcnt++;
@@ -83,6 +96,7 @@ bget(uint dev, uint blockno)
       ibkt = (ibkt + 1) % NBUCKET) {
     acquire( &(bcache[ibkt].lock) );
     for(int i = 0; i < BKTSIZE; ++i) {
+      if( bktunused(ibkt, i) ) continue;
       b = &(bcache[ibkt].buf[i]);
       if(b->refcnt == 0) {
         b->dev = dev;
