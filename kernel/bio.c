@@ -40,6 +40,7 @@ binit(void)
   initlock(&bcachelock, "bcache");
   for(int i = 0; i < NBUCKET; ++i) {
     struct bucket *bkt = &(bcache[i]);
+    initlock(&(bkt->lock), "bcache.bucket");
     for(int j = 0; j < BKTSIZE; ++j) {
       initsleeplock(&(bkt->buf[j].lock), "buffer");
     }
@@ -53,32 +54,48 @@ static struct buf*
 bget(uint dev, uint blockno)
 {
   struct buf *b;
+  const int mybkt = hash(blockno);
+  int ibkt;
 
   acquire(&bcachelock);
 
   // Is the block already cached?
-  for(int i = 0; i < BKTSIZE; ++i) {
-    b = &(bcache[hash(blockno)].buf[i]);
-    if(b->dev == dev && b->blockno == blockno){
-      b->refcnt++;
-      release(&bcachelock);
-      acquiresleep(&b->lock);
-      return b;
+  // 从自己的桶开始搜索，如果自己的桶没有再搜索别人的桶
+  ibkt = mybkt;
+  do {
+    acquire( &(bcache[ibkt].lock) );
+    for(int i = 0; i < BKTSIZE; ++i) {
+      b = &(bcache[ibkt].buf[i]);
+      if(b->dev == dev && b->blockno == blockno){
+        b->refcnt++;
+        release( &(bcache[ibkt].lock) );
+        release(&bcachelock);
+        acquiresleep(&b->lock);
+        return b;
+      }
     }
-  }
+    release( &(bcache[ibkt].lock) );
+  } while( (ibkt = (ibkt + 1) % NBUCKET) != mybkt );
 
   // Not cached.
-  for(int i = 0; i < BKTSIZE; ++i) {
-    b = &(bcache[hash(blockno)].buf[i]);
-    if(b->refcnt == 0) {
-      b->dev = dev;
-      b->blockno = blockno;
-      b->valid = 0;
-      b->refcnt = 1;
-      release(&bcachelock);
-      acquiresleep(&b->lock);
-      return b;
+  // 从自己桶(mybkt)的下一个桶开始搜索
+  for(ibkt = (mybkt + 1) % NBUCKET; ibkt != mybkt;
+      ibkt = (ibkt + 1) % NBUCKET) {
+    acquire( &(bcache[ibkt].lock) );
+    for(int i = 0; i < BKTSIZE; ++i) {
+      b = &(bcache[ibkt].buf[i]);
+      if(b->refcnt == 0) {
+        b->dev = dev;
+        b->blockno = blockno;
+        b->valid = 0;
+        b->refcnt = 1;
+        release( &(bcache[ibkt].lock) );
+        release(&bcachelock);
+        acquiresleep(&b->lock);
+        return b;
+      }
     }
+    release( &(bcache[ibkt].lock) );
   }
   panic("bget: no buffers");
 }

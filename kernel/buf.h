@@ -1,4 +1,4 @@
-#define NBUCKET 1
+#define NBUCKET 13
 #define BKTSIZE ((NBUF/NBUCKET) + 1)
 struct buf {
   int valid;   // has data been read from disk?
