@@ -43,6 +43,7 @@ binit(void)
     initlock(&(bkt->lock), "bcache.bucket");
     for(int j = 0; j < BKTSIZE; ++j) {
       initsleeplock(&(bkt->buf[j].lock), "buffer");
+      bkt->buf[j].bktlk = &(bkt->lock);
     }
   }
 }
@@ -147,21 +148,27 @@ brelse(struct buf *b)
   releasesleep(&b->lock);
 
   acquire(&bcachelock);
+  acquire(b->bktlk);
   b->refcnt--;
+  release(b->bktlk);
   release(&bcachelock);
 }
 
 void
 bpin(struct buf *b) {
   acquire(&bcachelock);
+  acquire(b->bktlk);
   b->refcnt++;
+  release(b->bktlk);
   release(&bcachelock);
 }
 
 void
 bunpin(struct buf *b) {
   acquire(&bcachelock);
+  acquire(b->bktlk);
   b->refcnt--;
+  release(b->bktlk);
   release(&bcachelock);
 }
 

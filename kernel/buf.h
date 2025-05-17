@@ -5,6 +5,7 @@ struct buf {
   int disk;    // does disk "own" buf?
   uint dev;
   uint blockno;
+  struct spinlock *bktlk;
   struct sleeplock lock;
   uint refcnt;
   uchar data[BSIZE];
