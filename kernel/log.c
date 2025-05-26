@@ -33,15 +33,22 @@
 // Contents of the header block, used for both the on-disk header block
 // and to keep track in memory of logged block# before commit.
 struct logheader {
-  int n;
+  int n;               // Number of **logged** blocks
   int block[LOGSIZE];
 };
 
 struct log {
   struct spinlock lock;
-  int start;
-  int size;
+  int start;       // Block number of first log block(i.e. the header)
+  int size;        // Number of log blocks
+  /* Reserves space and prevents commit during syscall(to avoid
+   * splitting a syscall across transactions)
+  */
   int outstanding; // how many FS sys calls are executing.
+  /* Prevents a new transaction starts while committing
+   * Why not use log.lock?
+   * 因为sleep的时候不能有锁：commit()会调用bread(), bread()会获取sleeplock
+  */
   int committing;  // in commit(), please wait.
   int dev;
   struct logheader lh;
@@ -64,7 +71,7 @@ initlog(int dev, struct superblock *sb)
   recover_from_log();
 }
 
-// Copy committed blocks from log to their home location
+// Copy committed blocks from log(on disk) to their home location
 static void
 install_trans(int recovering)
 {
@@ -194,11 +201,11 @@ static void
 commit()
 {
   if (log.lh.n > 0) {
-    write_log();     // Write modified blocks from cache to log
+    write_log();     // Write modified blocks from cache(in memory) to log(on disk)
     write_head();    // Write header to disk -- the real commit
     install_trans(0); // Now install writes to home locations
-    log.lh.n = 0;
-    write_head();    // Erase the transaction from the log
+    log.lh.n = 0;    // Erase the transaction from the log(in memory)
+    write_head();    // Erase the transaction from the log(in cache and disk)
   }
 }
 
@@ -218,7 +225,7 @@ log_write(struct buf *b)
 
   acquire(&log.lock);
   if (log.lh.n >= LOGSIZE || log.lh.n >= log.size - 1)
-    panic("too big a transaction");
+    panic("log_write: too big a transaction");
   if (log.outstanding < 1)
     panic("log_write outside of trans");
 

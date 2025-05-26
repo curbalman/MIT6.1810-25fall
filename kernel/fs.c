@@ -203,7 +203,7 @@ ialloc(uint dev, short type)
   struct dinode *dip;
 
   for(inum = 1; inum < sb.ninodes; inum++){
-    bp = bread(dev, IBLOCK(inum, sb));
+    bp = bread(dev, IBLOCK(inum, sb));  // bread()保证其他进程不会同时读取bp
     dip = (struct dinode*)bp->data + inum%IPB;
     if(dip->type == 0){  // a free inode
       memset(dip, 0, sizeof(*dip));
@@ -302,7 +302,7 @@ ilock(struct inode *ip)
 
   if(ip->valid == 0){
     bp = bread(ip->dev, IBLOCK(ip->inum, sb));
-    dip = (struct dinode*)bp->data + ip->inum%IPB;
+  dip = (struct dinode*)bp->data + ip->inum%IPB;
     ip->type = dip->type;
     ip->major = dip->major;
     ip->minor = dip->minor;
@@ -428,7 +428,7 @@ itrunc(struct inode *ip)
   int i, j;
   struct buf *bp;
   uint *a;
-
+  // free the direct blocks
   for(i = 0; i < NDIRECT; i++){
     if(ip->addrs[i]){
       bfree(ip->dev, ip->addrs[i]);
@@ -441,10 +441,10 @@ itrunc(struct inode *ip)
     a = (uint*)bp->data;
     for(j = 0; j < NINDIRECT; j++){
       if(a[j])
-        bfree(ip->dev, a[j]);
+        bfree(ip->dev, a[j]);  // free the indirect blocks
     }
     brelse(bp);
-    bfree(ip->dev, ip->addrs[NDIRECT]);
+    bfree(ip->dev, ip->addrs[NDIRECT]);  // free the indirect block itself
     ip->addrs[NDIRECT] = 0;
   }
 
